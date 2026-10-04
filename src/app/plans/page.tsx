@@ -48,7 +48,7 @@ export default function PlansPage() {
 
       {/* Cards */}
       <section className="py-14 md:py-20">
-        <Container className="grid items-start gap-6 lg:grid-cols-2 lg:gap-8">
+        <Container className="grid gap-6 lg:grid-cols-2 lg:gap-8">
           <TrialCard />
           <PlanCard />
         </Container>

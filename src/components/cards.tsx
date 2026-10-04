@@ -224,7 +224,7 @@ export function SessionCard({
   status: string;
 }) {
   return (
-    <article className="flex flex-col gap-4 rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
+    <article className="flex h-full flex-col gap-4 rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="t-h4 text-charcoal-900">{service}</h3>
@@ -242,7 +242,7 @@ export function SessionCard({
           {time}
         </span>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="mt-auto flex flex-wrap gap-2">
         <button
           type="button"
           className="rounded-[10px] border border-forest-900/20 bg-white px-4 py-2 text-body-sm font-semibold text-forest-900 transition duration-200 ease-out hover:border-forest-900/45"
