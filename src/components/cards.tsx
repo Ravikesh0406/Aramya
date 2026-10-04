@@ -215,6 +215,9 @@ export function SessionCard({
   date,
   time,
   status,
+  reference,
+  onCancel,
+  onReschedule,
 }: {
   service: string;
   trainer: string;
@@ -222,6 +225,9 @@ export function SessionCard({
   date: string;
   time: string;
   status: string;
+  reference?: string;
+  onCancel?: () => void;
+  onReschedule?: () => void;
 }) {
   return (
     <article className="flex h-full flex-col gap-4 rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
@@ -229,6 +235,9 @@ export function SessionCard({
         <div>
           <h3 className="t-h4 text-charcoal-900">{service}</h3>
           <p className="pt-0.5 text-body-sm text-muted-600">with {trainer}</p>
+          {reference ? (
+            <p className="pt-0.5 text-caption text-muted-600">Reference {reference}</p>
+          ) : null}
         </div>
         <StatusBadge status={status} />
       </div>
@@ -243,18 +252,26 @@ export function SessionCard({
         </span>
       </div>
       <div className="mt-auto flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="rounded-[10px] border border-forest-900/20 bg-white px-4 py-2 text-body-sm font-semibold text-forest-900 transition duration-200 ease-out hover:border-forest-900/45"
-        >
-          Request a change
-        </button>
-        <button
-          type="button"
-          className="rounded-[10px] px-4 py-2 text-body-sm font-semibold text-muted-600 transition duration-200 ease-out hover:text-charcoal-900"
-        >
-          View history
-        </button>
+        {status === "Requested" || status === "Confirmed" || status === "Accepted" || status === "Upcoming" || status === "Rescheduled" || status === "Reschedule Requested" ? (
+          <>
+            <button
+              type="button"
+              onClick={onReschedule}
+              disabled={!onReschedule}
+              className="rounded-[10px] border border-forest-900/20 bg-white px-4 py-2 text-body-sm font-semibold text-forest-900 transition duration-200 ease-out hover:border-forest-900/45 disabled:opacity-50"
+            >
+              Request a change
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={!onCancel}
+              className="rounded-[10px] px-4 py-2 text-body-sm font-semibold text-error transition duration-200 ease-out hover:bg-error/5 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </>
+        ) : null}
       </div>
     </article>
   );

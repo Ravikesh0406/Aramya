@@ -1,0 +1,46 @@
+export type UserRole = "customer" | "trainer";
+
+export type UserProfile = {
+  id: string;
+  name: string;
+  contact: string;
+  role: UserRole;
+};
+
+export type BookingStatus =
+  | "Requested"
+  | "Accepted"
+  | "Confirmed"
+  | "Upcoming"
+  | "In Progress"
+  | "Completed"
+  | "Cancelled"
+  | "Reschedule Requested"
+  | "Rescheduled"
+  | "No Show"
+  | "Expired"
+  | "Disputed";
+
+export type BookingRequest = {
+  id: string;
+  reference: string;
+  createdAt: string;
+  location: string;
+  serviceSlug: string;
+  serviceName: string;
+  days: string[];
+  time: string;
+  specificTime: string;
+  status: BookingStatus;
+  trainerName: string | null;
+  proposedDays: string[] | null;
+  proposedTime: string | null;
+  proposedSpecificTime: string | null;
+  proposedBy: string | null;
+  updatedAt: string;
+};
+
+export type BookingInput = Omit<
+  BookingRequest,
+  "id" | "reference" | "createdAt" | "status" | "trainerName" | "proposedDays" | "proposedTime" | "proposedSpecificTime" | "proposedBy" | "updatedAt"
+>;

@@ -2,7 +2,9 @@
 import type { Metadata } from "next";
 import { Container, Overline } from "@/components/ui";
 import { BookingFlow } from "@/components/BookingFlow";
+import { Suspense } from "react";
 import { CheckIcon, CalendarIcon, ClockIcon, ShieldIcon } from "@/components/Icons";
+import { TRIAL } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Book a Trial",
@@ -13,7 +15,7 @@ export const metadata: Metadata = {
 const PROMISES = [
   { icon: CalendarIcon, text: "Choose four preferred days" },
   { icon: ClockIcon, text: "Morning, afternoon, evening or specific time" },
-  { icon: CheckIcon, text: "4-Session Trial · ₹999 (regular ₹1,499)" },
+  { icon: CheckIcon, text: `${TRIAL.name} · ${TRIAL.price} (regular ${TRIAL.regularPrice})` },
   { icon: ShieldIcon, text: "Booked 24+ hours in advance" },
 ];
 
@@ -35,7 +37,9 @@ export default function BookPage() {
 
       <section className="py-12 md:py-16">
         <Container className="grid items-start gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:gap-10">
-          <BookingFlow />
+          <Suspense fallback={<p className="text-body text-muted-600">Loading booking...</p>}>
+            <BookingFlow />
+          </Suspense>
 
           <aside className="flex flex-col gap-4 lg:sticky lg:top-24">
             <div className="rounded-xl border border-forest-900/10 bg-white p-6 shadow-sm">

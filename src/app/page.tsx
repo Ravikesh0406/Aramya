@@ -4,7 +4,7 @@
 
 import { Container, Overline, SectionHeading, ButtonLink } from "@/components/ui";
 import { LocationSearchBar } from "@/components/LocationSearchBar";
-import { PlanCard, ServiceCard, TrainerCard, TrialCard } from "@/components/cards";
+import { PlanCard, ServiceCard, TrialCard } from "@/components/cards";
 import { LogoMark } from "@/components/Logo";
 import {
   ArrowRightIcon,
@@ -15,7 +15,7 @@ import {
   StarIcon,
   CalendarIcon,
 } from "@/components/Icons";
-import { DEMO_TRAINERS, HOW_IT_WORKS, SERVICES } from "@/lib/data";
+import { HOW_IT_WORKS, SERVICES, TRIAL, MONTHLY_PLAN } from "@/lib/data";
 
 /* ------------------------------------------------------------------- Hero */
 
@@ -60,9 +60,9 @@ function Hero() {
             <div>
               <dt className="t-caption text-muted-600">4-Session Trial</dt>
               <dd className="pt-0.5 text-body-md text-forest-900">
-                ₹999{" "}
+                {TRIAL.price}{" "}
                 <span className="text-body-sm font-normal text-muted-600 line-through">
-                  ₹1,499
+                  {TRIAL.regularPrice}
                 </span>
               </dd>
             </div>
@@ -125,12 +125,15 @@ function Hero() {
                     Session confirmed
                   </p>
                   <p className="truncate text-caption text-muted-600">
-                    Fitness / Personal Training · with Rohit Mehta
+                    Professional at-home sessions
+                  </p>
+                  <p className="truncate text-caption text-muted-600">
+                    Service matched to your schedule
                   </p>
                 </div>
                 <span className="ml-auto inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-semibold text-charcoal-900">
                   <CalendarIcon size={14} className="text-muted-600" />
-                  Sat · 7:00 AM
+                  24h+ ahead
                 </span>
               </div>
             </div>
@@ -140,9 +143,9 @@ function Hero() {
           <div className="absolute -left-3 top-6 hidden rounded-lg border border-forest-900/10 bg-white px-4 py-3 shadow-md sm:block">
             <p className="t-caption text-muted-600">4-Session Trial</p>
             <p className="text-body-md text-forest-900">
-              ₹999{" "}
+              {TRIAL.price}{" "}
               <span className="text-body-sm font-normal text-muted-600 line-through">
-                ₹1,499
+                {TRIAL.regularPrice}
               </span>
             </p>
           </div>
@@ -198,8 +201,8 @@ function TrialSection() {
           />
 
           <div className="flex items-baseline gap-3">
-            <span className="t-display text-forest-900">₹999</span>
-            <span className="t-body-lg text-muted-600 line-through">₹1,499</span>
+            <span className="t-display text-forest-900">{TRIAL.price}</span>
+            <span className="t-body-lg text-muted-600 line-through">{TRIAL.regularPrice}</span>
             <span className="rounded-pill bg-forest-900 px-3 py-1 text-caption font-semibold text-white">
               Early access price
             </span>
@@ -352,19 +355,16 @@ function TrustSection() {
         />
 
         <div className="flex flex-col gap-4">
-          {DEMO_TRAINERS.map((trainer) => (
-            <TrainerCard
-              key={trainer.name}
-              name={trainer.name}
-              area={trainer.area}
-              experience={trainer.experience}
-              rating={trainer.rating}
-              serviceLabel={
-                SERVICES.find((s) => s.slug === trainer.services[0])?.name ??
-                "Yoga"
-              }
-            />
-          ))}
+          <div className="rounded-xl border border-forest-900/10 bg-white p-6 shadow-sm">
+            <p className="t-overline pb-3 text-terracotta-500">Live requests</p>
+            <p className="t-h4 text-charcoal-900">
+              Requests are matched from the active trainer dashboard
+            </p>
+            <p className="pt-2 text-body-sm text-muted-600">
+              Customer bookings stay in one shared schedule. Nearby trainers accept the ones
+              that fit, and the same accepted request becomes your confirmed booking.
+            </p>
+          </div>
           <div className="grid grid-cols-3 gap-3 pt-2">
             <div className="rounded-lg bg-ivory-50 p-4 text-center">
               <p className="text-body-md text-forest-900">Verified</p>
@@ -403,7 +403,7 @@ function PlanSection() {
           />
 
           <div className="flex items-baseline gap-3">
-            <span className="t-display text-forest-900">₹4,500</span>
+            <span className="t-display text-forest-900">{MONTHLY_PLAN.price}</span>
             <span className="t-body-lg text-muted-600">/ month</span>
           </div>
 
@@ -496,7 +496,7 @@ function CtaSection() {
               </ButtonLink>
             </div>
             <p className="t-caption text-ivory-50/60">
-              4-Session Trial ₹999 (regular ₹1,499) · Monthly Plan ₹4,500 / month
+              4-Session Trial {TRIAL.price} (regular {TRIAL.regularPrice}) · Monthly Plan {MONTHLY_PLAN.price} / month
             </p>
           </div>
         </div>

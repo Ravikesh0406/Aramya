@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import { Container, Overline, SectionHeading, ButtonLink, StatusBadge } from "@/components/ui";
 import { ClockIcon, CalendarIcon, ShieldIcon, CheckIcon } from "@/components/Icons";
-import { HOW_IT_WORKS, SESSION_STATUSES } from "@/lib/data";
+import { HOW_IT_WORKS, SESSION_STATUSES, TRIAL } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "How it Works",
@@ -113,9 +113,9 @@ export default function HowItWorksPage() {
           </ol>
           <div className="flex flex-col gap-3 rounded-xl border border-forest-900/10 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="t-h4 text-charcoal-900">4-Session Trial — ₹999</p>
+              <p className="t-h4 text-charcoal-900">{TRIAL.name} — {TRIAL.price}</p>
               <p className="pt-1 text-body-sm text-muted-600">
-                Regular displayed price ₹1,499 · four private at-home sessions
+                Regular displayed price {TRIAL.regularPrice} · four private at-home sessions
               </p>
             </div>
             <ButtonLink href="/book" size="lg" className="shrink-0">

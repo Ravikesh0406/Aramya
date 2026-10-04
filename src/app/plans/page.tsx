@@ -6,8 +6,7 @@ import { MONTHLY_PLAN, TRIAL } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Plans & Pricing",
-  description:
-    "4-Session Trial at ₹999 (regular ₹1,499) and an ongoing Monthly Plan at ₹4,500 / month for private at-home training.",
+  description: `4-Session Trial at ${TRIAL.price} (regular ${TRIAL.regularPrice}) and an ongoing Monthly Plan at ${MONTHLY_PLAN.price} / ${MONTHLY_PLAN.period} for private at-home training.`,
 };
 
 const FAQ = [
@@ -17,7 +16,7 @@ const FAQ = [
   },
   {
     q: "How much does the Monthly Plan cost?",
-    a: "₹4,500 / month. It includes 16 private at-home sessions, your preferred schedule, flexible schedule changes, session tracking and ongoing progress support.",
+    a: `${MONTHLY_PLAN.price} / month. It includes 16 private at-home sessions, your preferred schedule, flexible schedule changes, session tracking and ongoing progress support.`,
   },
   {
     q: "Can I change my schedule later?",
@@ -65,7 +64,7 @@ export default function PlansPage() {
               description="For customers who want regular at-home sessions with a preferred schedule and progress tracked over time."
             />
             <div className="flex items-baseline gap-3">
-              <span className="t-display-xl text-ivory-50">₹4,500</span>
+              <span className="t-display-xl text-ivory-50">{MONTHLY_PLAN.price}</span>
               <span className="t-body-lg text-ivory-50/75">/ month</span>
             </div>
             <ButtonLink href="/book" size="lg" variant="accent">

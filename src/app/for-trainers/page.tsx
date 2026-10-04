@@ -5,7 +5,6 @@ import {
   BellIcon,
   CalendarIcon,
   CheckIcon,
-  ClockIcon,
   PaymentIcon,
   UserIcon,
 } from "@/components/Icons";
@@ -117,33 +116,24 @@ export default function ForTrainersPage() {
                     <UserIcon size={18} />
                   </span>
                   <div>
-                    <p className="text-body-md text-charcoal-900">Nearby request</p>
+                    <p className="text-body-md text-charcoal-900">Trainer request inbox</p>
                     <p className="text-body-sm text-muted-600">
-                      Yoga · 0.8 km away
+                      Accept live requests when they match your schedule
                     </p>
                   </div>
                 </div>
                 <span className="rounded-pill border border-forest-900/20 bg-ivory-50 px-3 py-1 text-caption font-semibold text-forest-900">
-                  Requested
+                  Live
                 </span>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-forest-900/8 pt-4 sm:grid-cols-4">
-                {["Mon", "Wed", "Fri", "Sun"].map((day) => (
-                  <span
-                    key={day}
-                    className="rounded-sm bg-ivory-50 px-3 py-2 text-center text-caption font-semibold text-charcoal-900"
-                  >
-                    {day}
-                  </span>
-                ))}
+              <div className="mt-4 rounded-lg bg-ivory-50 p-4 text-body-sm text-muted-600">
+                Customer bookings appear here automatically. A trainer can review the service,
+                preferred days, preferred time and address before accepting.
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-pill bg-success/10 px-3 py-1 text-caption font-semibold text-success">
-                  <ClockIcon size={13} /> Morning
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-pill bg-ivory-50 px-3 py-1 text-caption font-semibold text-charcoal-900">
-                  4-Session Trial
-                </span>
+              <div className="mt-4">
+                <ButtonLink href="/trainer" variant="secondary" size="md">
+                  Open trainer dashboard
+                </ButtonLink>
               </div>
             </div>
           </div>

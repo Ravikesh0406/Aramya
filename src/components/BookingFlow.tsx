@@ -3,8 +3,9 @@
 // ARAMYA booking flow — Design System §11 (Booking Flow), §12 (Trainer Matching),
 // §10 (4-Session Trial) and §13 (scheduling rules).
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -12,12 +13,16 @@ import {
   LocationIcon,
   CrosshairIcon,
   CalendarIcon,
-  StarIcon,
-  ShieldIcon,
 } from "@/components/Icons";
 import { SERVICE_ICONS } from "@/components/Icons";
 import { Button, CheckList } from "@/components/ui";
-import { DEMO_TRAINERS, DAYS, SERVICES, TIME_OPTIONS, TRIAL } from "@/lib/data";
+import { DAYS, SERVICES, TIME_OPTIONS, TRIAL } from "@/lib/data";
+import {
+  getCurrentLocation,
+  getCurrentLocationErrorMessage,
+} from "@/lib/geolocation";
+import { createBooking, type BookingRequest } from "@/lib/bookings";
+import { useCurrentUser } from "@/lib/auth";
 
 const STEP_LABELS = [
   "Location",
@@ -27,23 +32,22 @@ const STEP_LABELS = [
   "Days",
   "Time",
   "Request",
-  "Matching",
+  "Sent",
 ] as const;
-
-const MATCHING_STAGES = [
-  "Finding nearby eligible trainers",
-  "Notifying relevant trainers",
-  "Trainer accepts your request",
-  "Booking confirmed",
-];
 
 function LocationStep({
   value,
+  error,
+  locating,
   onChange,
+  onLocate,
   onNext,
 }: {
   value: string;
+  error: string;
+  locating: boolean;
   onChange: (value: string) => void;
+  onLocate: () => void;
   onNext: () => void;
 }) {
   return (
@@ -74,18 +78,21 @@ function LocationStep({
           variant="secondary"
           size="lg"
           className="shrink-0"
-          onClick={() => onChange("Current location")}
+          onClick={onLocate}
+          disabled={locating}
         >
-          <CrosshairIcon size={17} /> Use current location
+          <CrosshairIcon size={17} /> {locating ? "Locating..." : "Use current location"}
         </Button>
       </div>
+
+      {error ? <p className="text-body-sm text-error">{error}</p> : null}
 
       <p className="t-caption text-muted-600">
         Sessions must be booked 24 hours in advance or more.
       </p>
 
       <div className="pt-1">
-        <Button size="lg" onClick={onNext} disabled={!value.trim()}>
+        <Button size="lg" onClick={onNext} disabled={!value.trim() || locating}>
           Continue <ArrowRightIcon size={17} />
         </Button>
       </div>
@@ -408,132 +415,46 @@ function RequestStep({
   );
 }
 
-function MatchingStep({
-  days,
-  time,
-  service,
-}: {
-  days: string[];
-  time: string;
-  service: string;
-}) {
-  const [stage, setStage] = useState(0);
-
-  useEffect(() => {
-    if (stage >= MATCHING_STAGES.length - 1) return;
-    const timer = window.setTimeout(() => setStage((s) => s + 1), 1400);
-    return () => window.clearTimeout(timer);
-  }, [stage]);
-
-  const matchedTrainer = useMemo(
-    () => DEMO_TRAINERS.find((t) => t.services.includes(service)) ?? DEMO_TRAINERS[0],
-    [service],
-  );
-
-  const done = stage >= MATCHING_STAGES.length - 1;
-
+function RequestSentStep({ booking }: { booking: BookingRequest }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="t-overline text-terracotta-500">Trainer matching</p>
-        <h2 className="pt-1.5 t-h2 text-charcoal-900">
-          {done ? "Your booking is confirmed" : "Matching you with a trainer"}
-        </h2>
+        <p className="t-overline text-terracotta-500">Request posted</p>
+        <h2 className="pt-1.5 t-h2 text-charcoal-900">Thanks — we saved your trial request</h2>
       </div>
 
-      <ol className="flex flex-col gap-3">
-        {MATCHING_STAGES.map((label, index) => {
-          const state = index < stage ? "done" : index === stage ? "active" : "pending";
-          return (
-            <li
-              key={label}
-              className={`flex items-center gap-3 rounded-xl border px-4 py-3.5 transition duration-200 ease-out ${
-                state === "pending"
-                  ? "border-forest-900/10 bg-white opacity-60"
-                  : state === "active"
-                    ? "border-forest-900/30 bg-white shadow-sm"
-                    : "border-success/30 bg-success/8"
-              }`}
-            >
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-pill ${
-                  state === "done"
-                    ? "bg-success text-white"
-                    : state === "active"
-                      ? "bg-forest-900 text-white"
-                      : "bg-forest-900/10 text-muted-600"
-                }`}
-              >
-                {state === "done" ? (
-                  <CheckIcon size={13} strokeWidth={2.6} />
-                ) : (
-                  <span className="text-caption font-bold">{index + 1}</span>
-                )}
-              </span>
-              <span className="text-body text-charcoal-900">{label}</span>
-            </li>
-          );
-        })}
-      </ol>
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-forest-900/10 bg-forest-900/10 sm:grid-cols-4">
+        {[
+          ["Location", booking.location],
+          ["Service", booking.serviceName],
+          ["Days", booking.days.map((day) => day.slice(0, 3)).join(", ")],
+          ["Time", booking.time === "Specific time" && booking.specificTime ? booking.specificTime : booking.time],
+        ].map(([label, value]) => (
+          <div key={label} className="bg-white px-5 py-4">
+            <dt className="t-caption text-muted-600">{label}</dt>
+            <dd className="pt-1 text-body text-charcoal-900">{value}</dd>
+          </div>
+        ))}
+      </dl>
 
-      {done ? (
-        <div className="flex flex-col gap-4 rounded-xl border border-forest-900/12 bg-white p-5 shadow-md">
-          <div className="flex items-center gap-4">
-            <span className="flex h-12 w-12 items-center justify-center rounded-pill bg-forest-900 text-body-md text-white">
-              {matchedTrainer.name
-                .split(" ")
-                .map((part) => part[0])
-                .join("")}
-            </span>
-            <div className="min-w-0">
-              <p className="text-body-md text-charcoal-900">
-                {matchedTrainer.name}
-              </p>
-              <p className="text-body-sm text-muted-600">
-                {matchedTrainer.experience} · {matchedTrainer.area}
-              </p>
-            </div>
-            <span className="ml-auto inline-flex items-center gap-1 text-body-sm font-semibold text-charcoal-900">
-              <StarIcon size={15} className="text-terracotta-500" />
-              {matchedTrainer.rating.toFixed(1)}
-            </span>
-          </div>
-          <dl className="grid grid-cols-2 gap-3 border-t border-forest-900/8 pt-4 sm:grid-cols-3">
-            <div>
-              <dt className="t-caption text-muted-600">Status</dt>
-              <dd className="pt-0.5 text-body-sm font-semibold text-success">
-                Confirmed
-              </dd>
-            </div>
-            <div>
-              <dt className="t-caption text-muted-600">Days</dt>
-              <dd className="pt-0.5 text-body-sm text-charcoal-900">
-                {days.map((d) => d.slice(0, 3)).join(", ")}
-              </dd>
-            </div>
-            <div>
-              <dt className="t-caption text-muted-600">Time</dt>
-              <dd className="pt-0.5 text-body-sm text-charcoal-900">{time}</dd>
-            </div>
-          </dl>
-          <div className="flex flex-wrap gap-3 border-t border-forest-900/8 pt-4">
-            <Link href="/sessions">
-              <Button>View My Sessions</Button>
-            </Link>
-            <Link href="/">
-              <Button variant="ghost">Back to home</Button>
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-start gap-3 rounded-xl border border-forest-900/10 bg-ivory-50 p-5">
-          <ShieldIcon size={20} className="mt-0.5 shrink-0 text-forest-900" />
-          <p className="text-body-sm text-muted-600">
-            We only notify nearby trainers who are eligible for your service.
-            Where possible, the same trainer stays with your bundle.
-          </p>
-        </div>
-      )}
+      <div className="rounded-xl border border-forest-900/10 bg-ivory-50 p-5">
+        <p className="text-body-sm text-muted-600">
+          Your request is now available in the trainer dashboard. Once a trainer accepts, the
+          same request will show as confirmed in your session dashboard.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-3 border-t border-forest-900/8 pt-4">
+        <Link href="/sessions">
+          <Button>View My Sessions</Button>
+        </Link>
+        <Link href="/trainer">
+          <Button variant="secondary">Trainer Dashboard</Button>
+        </Link>
+        <Link href="/">
+          <Button variant="ghost">Back to home</Button>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -541,19 +462,51 @@ function MatchingStep({
 /* --------------------------------------------------------------- Flow root */
 
 export function BookingFlow() {
+  const { user, loading: authLoading } = useCurrentUser();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
-  const [location, setLocation] = useState("");
-  const [service, setService] = useState<string | null>(null);
-  const [days, setDays] = useState<string[]>([]);
-  const [time, setTime] = useState("");
+  const [location, setLocation] = useState(() => searchParams?.get("location") ?? "");
+  const [locationError, setLocationError] = useState("");
+  const [locating, setLocating] = useState(false);
+  const [service, setService] = useState<string | null>(() => {
+    const serviceParam = searchParams?.get("service");
+    return SERVICES.some((s) => s.slug === serviceParam) ? serviceParam : null;
+  });
+  const [days, setDays] = useState<string[]>(() => {
+    const daysParam = searchParams?.get("days")?.split(",").map((day) => day.trim()).filter(Boolean) ?? [];
+    return daysParam.length === 4 && daysParam.every((day) => DAYS.includes(day)) ? [...new Set(daysParam)] : [];
+  });
+  const [time, setTime] = useState(() => searchParams?.get("time") ?? "");
   const [specificTime, setSpecificTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<BookingRequest | null>(null);
+  const [submitError, setSubmitError] = useState("");
 
   const serviceObj = SERVICES.find((s) => s.slug === service);
   const timeLabel =
     time === "Specific time" && specificTime
       ? `Specific time · ${specificTime}`
       : time;
+
+  async function locateCurrentLocation() {
+    setLocating(true);
+    setLocationError("");
+    setLocation("Getting your location...");
+    try {
+      const current = await getCurrentLocation();
+      setLocation(current.label);
+    } catch (error) {
+      setLocation("");
+      setLocationError(getCurrentLocationErrorMessage(error));
+    } finally {
+      setLocating(false);
+    }
+  }
+
+  function updateLocation(value: string) {
+    setLocation(value);
+    setLocationError("");
+  }
 
   function toggleDay(day: string) {
     setDays((current) => {
@@ -563,12 +516,53 @@ export function BookingFlow() {
     });
   }
 
-  function submit() {
+  async function submit() {
+    if (!service) return;
     setSubmitting(true);
-    window.setTimeout(() => {
-      setSubmitting(false);
+    setSubmitError("");
+    try {
+      const booking = await createBooking({
+        location,
+        serviceSlug: service,
+        serviceName: serviceObj?.name ?? "Service",
+        days,
+        time,
+        specificTime,
+      });
+      setCreatedBooking(booking);
       setStep(7);
-    }, 900);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Unable to send your request.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="rounded-xl border border-forest-900/10 bg-ivory-50 p-5 shadow-sm md:p-8">
+        <p className="text-body text-muted-600">Checking your account...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="rounded-xl border border-forest-900/10 bg-ivory-50 p-5 shadow-sm md:p-8">
+        <p className="t-overline text-terracotta-500">Sign in required</p>
+        <h2 className="pt-2 t-h2 text-charcoal-900">Book a trial with an account</h2>
+        <p className="pt-2 text-body text-muted-600">
+          You can explore every service and plan first, but trial requests need a signed-in customer account.
+        </p>
+        <div className="pt-5">
+          <Link href="/login?redirect=/book">
+            <Button size="lg">Sign in to book</Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const progress = ((step + 1) / STEP_LABELS.length) * 100;
@@ -604,7 +598,10 @@ export function BookingFlow() {
         {step === 0 ? (
           <LocationStep
             value={location}
-            onChange={setLocation}
+            error={locationError}
+            locating={locating}
+            onChange={updateLocation}
+            onLocate={() => void locateCurrentLocation()}
             onNext={() => setStep(1)}
           />
         ) : null}
@@ -652,25 +649,26 @@ export function BookingFlow() {
         ) : null}
 
         {step === 6 ? (
-          <RequestStep
-            summary={{
-              location,
-              service: serviceObj?.name ?? "—",
-              days,
-              time: timeLabel,
-            }}
-            submitting={submitting}
-            onSubmit={submit}
-            onBack={() => setStep(5)}
-          />
+          <>
+            <RequestStep
+              summary={{
+                location,
+                service: serviceObj?.name ?? "—",
+                days,
+                time: timeLabel,
+              }}
+              submitting={submitting}
+              onSubmit={() => void submit()}
+              onBack={() => setStep(5)}
+            />
+            {submitError ? (
+              <p className="pt-4 text-body-sm text-error">{submitError}</p>
+            ) : null}
+          </>
         ) : null}
 
-        {step === 7 ? (
-          <MatchingStep
-            days={days}
-            time={timeLabel}
-            service={service ?? "yoga"}
-          />
+        {step === 7 && createdBooking ? (
+          <RequestSentStep booking={createdBooking} />
         ) : null}
       </div>
     </div>

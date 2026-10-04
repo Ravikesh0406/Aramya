@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Container, Overline, ButtonLink, CheckList, SectionHeading } from "@/components/ui";
 import { ServiceCard, TrialCard } from "@/components/cards";
 import { SERVICE_ICONS } from "@/components/Icons";
-import { SERVICES, getService, HOW_IT_WORKS } from "@/lib/data";
+import { SERVICES, getService, HOW_IT_WORKS, TRIAL } from "@/lib/data";
 
 export function generateStaticParams() {
   return SERVICES.map((service) => ({ slug: service.slug }));
@@ -60,7 +60,7 @@ export default async function ServiceDetailPage(
           </div>
 
           <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-            <ButtonLink href="/book" size="lg">
+            <ButtonLink href={`/book?service=${service.slug}`} size="lg">
               Book Your Trial
             </ButtonLink>
             <ButtonLink href="#included" size="lg" variant="secondary">
@@ -109,11 +109,11 @@ export default async function ServiceDetailPage(
             </p>
             <CheckList items={service.included} />
             <div className="mt-6 border-t border-forest-900/8 pt-5">
-              <ButtonLink href="/book" size="lg" className="w-full">
+              <ButtonLink href={`/book?service=${service.slug}`} size="lg" className="w-full">
                 Book the 4-Session Trial
               </ButtonLink>
               <p className="t-caption pt-3 text-center text-muted-600">
-                ₹999 (regular ₹1,499) · 24+ hours advance booking
+                {TRIAL.price} (regular {TRIAL.regularPrice}) · 24+ hours advance booking
               </p>
             </div>
           </div>

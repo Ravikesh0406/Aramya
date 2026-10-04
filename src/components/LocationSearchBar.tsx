@@ -10,6 +10,10 @@ import {
 } from "@/components/Icons";
 import { Button } from "@/components/ui";
 import { SEARCH_SUGGESTIONS } from "@/lib/data";
+import {
+  getCurrentLocation,
+  getCurrentLocationErrorMessage,
+} from "@/lib/geolocation";
 
 const SUGGESTION_TO_SLUG: Record<string, string> = {
   Yoga: "yoga",
@@ -21,6 +25,8 @@ const SUGGESTION_TO_SLUG: Record<string, string> = {
 export function LocationSearchBar() {
   const router = useRouter();
   const [location, setLocation] = useState("");
+  const [locationError, setLocationError] = useState("");
+  const [locating, setLocating] = useState(false);
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
 
@@ -28,14 +34,33 @@ export function LocationSearchBar() {
     s.toLowerCase().includes(query.trim().toLowerCase()),
   );
 
+  async function locateCurrentLocation() {
+    setLocating(true);
+    setLocationError("");
+    setLocation("Getting your location...");
+    try {
+      const current = await getCurrentLocation();
+      setLocation(current.label);
+    } catch (error) {
+      setLocation("");
+      setLocationError(getCurrentLocationErrorMessage(error));
+    } finally {
+      setLocating(false);
+    }
+  }
+
   function submit() {
+    if (locating) return;
     const match = SEARCH_SUGGESTIONS.find(
       (s) => s.toLowerCase() === query.trim().toLowerCase(),
     );
+    const params = new URLSearchParams();
+    if (location.trim()) params.set("location", location.trim());
     if (match) {
-      router.push(`/services/${SUGGESTION_TO_SLUG[match]}`);
+      params.set("service", SUGGESTION_TO_SLUG[match]);
+      router.push(`/book?${params.toString()}`);
     } else {
-      router.push("/services");
+      router.push(params.size > 0 ? `/book?${params.toString()}` : "/services");
     }
   }
 
@@ -52,20 +77,27 @@ export function LocationSearchBar() {
             <input
               type="text"
               value={location}
-              onChange={(event) => setLocation(event.target.value)}
+              onChange={(event) => {
+                setLocation(event.target.value);
+                setLocationError("");
+              }}
               placeholder="Select your location"
               aria-label="Your location"
               className="h-12 w-full rounded-[10px] border border-forest-900/15 bg-white pl-10 pr-4 text-body text-charcoal-900 placeholder:text-muted-600 focus:border-forest-900 focus:outline-none"
             />
             <button
               type="button"
-              onClick={() => setLocation("Current location")}
-              className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-sm text-forest-900 transition duration-200 ease-out hover:bg-ivory-50"
+              onClick={() => void locateCurrentLocation()}
+              disabled={locating}
+              className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-sm text-forest-900 transition duration-200 ease-out hover:bg-ivory-50 disabled:opacity-50"
               aria-label="Use current location"
               title="Use current location"
             >
               <CrosshairIcon size={18} />
             </button>
+            {locationError ? (
+              <p className="pt-2 text-body-sm text-error">{locationError}</p>
+            ) : null}
           </div>
 
           {/* Search */}
@@ -111,7 +143,7 @@ export function LocationSearchBar() {
             ) : null}
           </div>
 
-          <Button size="lg" onClick={submit} className="w-full md:w-auto">
+          <Button size="lg" onClick={submit} disabled={locating} className="w-full md:w-auto">
             Find a Trainer
           </Button>
         </div>

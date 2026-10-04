@@ -1,0 +1,237 @@
+"use client";
+
+import { useState } from "react";
+import { Container, Overline, ButtonLink, StatusBadge } from "@/components/ui";
+import { Button } from "@/components/ui";
+import { CalendarIcon, ClockIcon, LocationIcon } from "@/components/Icons";
+import {
+  useBookings,
+  acceptBooking,
+  acceptReschedule,
+  declineReschedule,
+} from "@/lib/bookings";
+import { SERVICES } from "@/lib/data";
+import { useCurrentUser } from "@/lib/auth";
+
+export function TrainerDashboard() {
+  const { user, loading: authLoading } = useCurrentUser();
+  const { bookings, loading: bookingsLoading } = useBookings();
+  const requests = bookings.filter((booking) => booking.status === "Requested");
+  const accepted = bookings.filter((booking) => booking.status === "Confirmed");
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [acceptError, setAcceptError] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  const filteredBookings = bookings.filter(
+    (booking) =>
+      (serviceFilter === "All" || booking.serviceSlug === serviceFilter) &&
+      (statusFilter === "All" || booking.status === statusFilter),
+  );
+
+  async function acceptRequest(id: string) {
+    try {
+      setAcceptingId(id);
+      setAcceptError("");
+      await acceptBooking(id);
+    } catch (error) {
+      setAcceptError(error instanceof Error ? error.message : "Unable to accept request.");
+    } finally {
+      setAcceptingId(null);
+    }
+  }
+
+  async function handleAcceptReschedule(id: string) {
+    try {
+      setAcceptError("");
+      await acceptReschedule(id);
+    } catch (error) {
+      setAcceptError(error instanceof Error ? error.message : "Unable to accept new time.");
+    }
+  }
+
+  async function handleDeclineReschedule(id: string) {
+    try {
+      setAcceptError("");
+      await declineReschedule(id);
+    } catch (error) {
+      setAcceptError(error instanceof Error ? error.message : "Unable to keep current time.");
+    }
+  }
+
+  if (authLoading || bookingsLoading) {
+    return (
+      <section className="py-14 md:py-20">
+        <Container>
+          <p className="rounded-xl border border-forest-900/10 bg-white p-6 text-body text-muted-600 shadow-sm">
+            Loading trainer dashboard...
+          </p>
+        </Container>
+      </section>
+    );
+  }
+
+  if (!user) {
+    return (
+      <section className="py-14 md:py-20">
+        <Container className="flex max-w-2xl flex-col gap-5">
+          <Overline>Trainer dashboard</Overline>
+          <h1 className="t-h1 text-charcoal-900">Sign in to use the trainer area</h1>
+          <p className="text-body text-muted-600">
+            Requests, acceptance and schedule tools are only available after trainer sign-in.
+          </p>
+          <ButtonLink href="/login?redirect=/trainer">Sign in as trainer</ButtonLink>
+        </Container>
+      </section>
+    );
+  }
+
+  if (user.role !== "trainer") {
+    return (
+      <section className="py-14 md:py-20">
+        <Container className="flex max-w-2xl flex-col gap-5">
+          <Overline>Trainer dashboard</Overline>
+          <h1 className="t-h1 text-charcoal-900">Trainer account required</h1>
+          <p className="text-body text-muted-600">
+            Sign in with a trainer account to review and accept requests.
+          </p>
+          <ButtonLink href="/login?redirect=/trainer">Use trainer login</ButtonLink>
+        </Container>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-14 md:py-20">
+      <Container className="flex flex-col gap-8">
+        <div className="flex flex-col gap-3">
+          <Overline>Trainer dashboard</Overline>
+          <h1 className="t-h1 text-charcoal-900">Nearby requests</h1>
+          <p className="max-w-2xl text-body text-muted-600">
+            Review customer trial requests, accept the ones that fit your schedule, and track
+            what you have already accepted.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
+            <p className="text-body-md text-forest-900">{requests.length}</p>
+            <p className="pt-0.5 text-caption text-muted-600">Open requests</p>
+          </div>
+          <div className="rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
+            <p className="text-body-md text-forest-900">{accepted.length}</p>
+            <p className="pt-0.5 text-caption text-muted-600">Accepted bookings</p>
+          </div>
+          <div className="rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
+            <p className="text-body-md text-forest-900">{bookings.length}</p>
+            <p className="pt-0.5 text-caption text-muted-600">Total saved requests</p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 rounded-xl border border-forest-900/10 bg-white p-4 shadow-sm sm:grid-cols-[1fr_1fr]">
+          <label className="flex flex-col gap-1.5">
+            <span className="t-caption text-muted-600">Service</span>
+            <select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)} className="h-12 rounded-[10px] border border-forest-900/15 bg-white px-4 text-body text-charcoal-900 focus:border-forest-900 focus:outline-none">
+              <option value="All">All services</option>
+              {SERVICES.map((service) => <option key={service.slug} value={service.slug}>{service.name}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="t-caption text-muted-600">Status</span>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-12 rounded-[10px] border border-forest-900/15 bg-white px-4 text-body text-charcoal-900 focus:border-forest-900 focus:outline-none">
+              <option value="All">All statuses</option>
+              {["Requested", "Confirmed", "Reschedule Requested", "Rescheduled", "Cancelled"].map((status) => <option key={status} value={status}>{status}</option>)}
+            </select>
+          </label>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {filteredBookings.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-forest-900/15 bg-white p-8 text-center shadow-sm">
+              <p className="t-h4 text-charcoal-900">{bookings.length === 0 ? "No customer requests yet" : "No matching requests"}</p>
+              <p className="pt-2 text-body-sm text-muted-600">
+                {bookings.length === 0
+                  ? "When a customer posts a trial request, it appears here automatically."
+                  : "Try a different service or status filter."}
+              </p>
+            </div>
+          ) : (
+            filteredBookings.map((booking) => (
+              <article
+                key={booking.id}
+                className="flex flex-col gap-4 rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="t-h4 text-charcoal-900">{booking.serviceName}</h2>
+                    <p className="pt-0.5 inline-flex items-center gap-1.5 text-body-sm text-muted-600">
+                      <LocationIcon size={15} /> {booking.location}
+                    </p>
+                  </div>
+                  <StatusBadge status={booking.status} />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {(booking.status === "Reschedule Requested" && booking.proposedDays ? booking.proposedDays : booking.days).map((day) => (
+                    <span
+                      key={day}
+                      className="rounded-sm bg-ivory-50 px-3 py-1.5 text-caption font-semibold text-charcoal-900"
+                    >
+                      {day.slice(0, 3)}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-body-sm text-charcoal-900">
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarIcon size={15} className="text-muted-600" />
+                    Four sessions requested
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <ClockIcon size={15} className="text-muted-600" />
+                    {booking.status === "Reschedule Requested" && booking.proposedTime
+                      ? booking.proposedTime === "Specific time" && booking.proposedSpecificTime
+                        ? booking.proposedSpecificTime
+                        : booking.proposedTime
+                      : booking.time === "Specific time" && booking.specificTime
+                        ? booking.specificTime
+                        : booking.time}
+                  </span>
+                </div>
+
+                {booking.status === "Requested" ? (
+                  <Button
+                    type="button"
+                    onClick={() => void acceptRequest(booking.id)}
+                    disabled={acceptingId === booking.id}
+                  >
+                    {acceptingId === booking.id ? "Accepting..." : "Accept this request"}
+                  </Button>
+                ) : null}
+
+                {booking.status === "Reschedule Requested" ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" onClick={() => void handleAcceptReschedule(booking.id)}>
+                      Accept new time
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => void handleDeclineReschedule(booking.id)}>
+                      Keep current
+                    </Button>
+                  </div>
+                ) : null}
+
+                {booking.status === "Confirmed" || booking.status === "Rescheduled" ? (
+                  <p className="text-body-sm font-semibold text-success">
+                    Accepted by {booking.trainerName ?? "you"}
+                  </p>
+                ) : null}
+              </article>
+            ))
+          )}
+        </div>
+
+        {acceptError ? <p className="text-body-sm text-error">{acceptError}</p> : null}
+      </Container>
+    </section>
+  );
+}

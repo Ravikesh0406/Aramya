@@ -17,6 +17,11 @@ import {
   UserIcon,
 } from "@/components/Icons";
 import { LOCATIONS, NAV_LINKS, SEARCH_SUGGESTIONS, SERVICES } from "@/lib/data";
+import {
+  getCurrentLocation,
+  getCurrentLocationErrorMessage,
+} from "@/lib/geolocation";
+import { clearCurrentUser, useCurrentUser } from "@/lib/auth";
 
 const SUGGESTION_TO_SLUG: Record<string, string> = {
   Yoga: "yoga",
@@ -27,9 +32,11 @@ const SUGGESTION_TO_SLUG: Record<string, string> = {
 
 export function Header() {
   const router = useRouter();
+  const { user, loading: authLoading } = useCurrentUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [location, setLocation] = useState("Select your location");
+  const [locationLoading, setLocationLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -61,9 +68,22 @@ export function Header() {
     };
   }, []);
 
+  async function locateCurrentLocation() {
+    setLocationLoading(true);
+    setLocation("Getting your location...");
+    try {
+      const current = await getCurrentLocation();
+      setLocation(current.label);
+    } catch (error) {
+      setLocation(getCurrentLocationErrorMessage(error));
+    } finally {
+      setLocationLoading(false);
+    }
+  }
+
   function chooseLocation(option: string) {
     if (option === "Use current location") {
-      setLocation("Current location");
+      void locateCurrentLocation();
     } else if (option === "Search locality") {
       setLocation("Indiranagar, Bengaluru");
     } else {
@@ -190,13 +210,25 @@ export function Header() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2 lg:ml-2">
-            <Link
-              href="/login"
-              className="hidden items-center gap-1.5 rounded-sm px-3 py-2 text-body-sm font-semibold text-forest-900 transition duration-200 ease-out hover:text-forest-800 md:inline-flex"
-            >
-              <UserIcon size={17} />
-              Login
-            </Link>
+            {!authLoading && !user ? (
+              <Link
+                href="/login"
+                className="hidden items-center gap-1.5 rounded-sm px-3 py-2 text-body-sm font-semibold text-forest-900 transition duration-200 ease-out hover:text-forest-800 md:inline-flex"
+              >
+                <UserIcon size={17} />
+                Login
+              </Link>
+            ) : null}
+            {user ? (
+              <button
+                type="button"
+                onClick={() => void clearCurrentUser()}
+                className="hidden items-center gap-1.5 rounded-sm px-3 py-2 text-body-sm font-semibold text-muted-600 transition duration-200 ease-out hover:text-forest-800 md:inline-flex"
+              >
+                <UserIcon size={17} />
+                Sign out
+              </button>
+            ) : null}
             <ButtonLink href="/book" size="sm" className="hidden sm:inline-flex">
               Book a Trial
             </ButtonLink>
@@ -226,13 +258,27 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                href="/login"
-                onClick={() => setMenuOpen(false)}
-                className="rounded-sm px-2 py-3 text-body-md text-charcoal-900 transition duration-200 ease-out hover:bg-white"
-              >
-                Login
-              </Link>
+              {!authLoading && !user ? (
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-sm px-2 py-3 text-body-md text-charcoal-900 transition duration-200 ease-out hover:bg-white"
+                >
+                  Login
+                </Link>
+              ) : null}
+              {user ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void clearCurrentUser();
+                    setMenuOpen(false);
+                  }}
+                  className="rounded-sm px-2 py-3 text-left text-body-md text-muted-600 transition duration-200 ease-out hover:bg-white"
+                >
+                  Sign out
+                </button>
+              ) : null}
             </nav>
 
             <div className="mt-4 flex flex-col gap-3">
@@ -253,7 +299,8 @@ export function Header() {
               <button
                 type="button"
                 onClick={() => chooseLocation("Use current location")}
-                className="inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900"
+                disabled={locationLoading}
+                className="inline-flex items-center gap-2 text-body-sm font-semibold text-forest-900 disabled:opacity-50"
               >
                 <CrosshairIcon size={16} /> Use current location
               </button>

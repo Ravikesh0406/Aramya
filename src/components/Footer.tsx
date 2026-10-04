@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Container } from "@/components/ui";
 import { Logo } from "@/components/Logo";
-import { SERVICES } from "@/lib/data";
+import { SERVICES, TRIAL, MONTHLY_PLAN } from "@/lib/data";
 
 const FOOTER_COLUMNS = [
   {
@@ -28,8 +28,8 @@ const FOOTER_COLUMNS = [
     links: [
       { label: "Book a Trial", href: "/book" },
       { label: "My Sessions", href: "/sessions" },
-      { label: "4-Session Trial — ₹999", href: "/plans" },
-      { label: "Monthly Plan — ₹4,500/month", href: "/plans" },
+      { label: `4-Session Trial — ${TRIAL.price}`, href: "/plans" },
+      { label: `Monthly Plan — ${MONTHLY_PLAN.price}/${MONTHLY_PLAN.period}`, href: "/plans" },
     ],
   },
 ];
@@ -78,7 +78,8 @@ export function Footer() {
             does not constitute medical treatment.
           </p>
           <p className="t-caption pt-2 text-ivory-50/45">
-            4-Session Trial ₹999 (regular ₹1,499) · Monthly Plan ₹4,500 / month
+            4-Session Trial {TRIAL.price} (regular {TRIAL.regularPrice}) · Monthly Plan{" "}
+            {MONTHLY_PLAN.price} / {MONTHLY_PLAN.period}
           </p>
         </div>
       </Container>

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { CheckIcon } from "@/components/Icons";
+import { TRIAL } from "@/lib/data";
 
 /* ---------------------------------------------------------------- Container */
 
@@ -180,7 +181,7 @@ export function CheckList({
 
 export function StruckPrice({ className = "" }: { className?: string }) {
   return (
-    <span className={`text-muted-600 line-through ${className}`}>₹1,499</span>
+    <span className={`text-muted-600 line-through ${className}`}>{TRIAL.regularPrice}</span>
   );
 }
 
