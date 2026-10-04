@@ -1,3 +1,7 @@
+# Aramya
+
+aramya — a home fitness & wellness platform connecting people with professional trainers for one-on-one sessions at home. Think Urban Company, but for fitness.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
