@@ -44,12 +44,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const payment = findPaymentByOrderId(orderId);
+  const payment = await findPaymentByOrderId(orderId);
   if (!payment || payment.userId !== user.id) {
     return Response.json({ error: "Payment not found." }, { status: 404 });
   }
   if (payment.status === "CAPTURED") {
-    return Response.json({ payment, payout: findPayoutForPayment(payment.id) });
+    return Response.json({ payment, payout: await findPayoutForPayment(payment.id) });
   }
   if (payment.status !== "CREATED") {
     return Response.json({ error: "Payment is no longer open." }, { status: 409 });
@@ -65,18 +65,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "Payment signature mismatch." }, { status: 402 });
   }
 
-  const captured = capturePayment(payment.id, razorpayPaymentId);
+  const captured = await capturePayment(payment.id, razorpayPaymentId);
   if (!captured) {
     return Response.json({ error: "Unable to capture payment." }, { status: 500 });
   }
 
   // Org → trainer: record the trainer's share for later settlement.
-  let payout = findPayoutForPayment(payment.id);
+  let payout = await findPayoutForPayment(payment.id);
   if (!payout) {
-    const booking = getBookingForPayment(payment.bookingId);
+    const booking = await getBookingForPayment(payment.bookingId);
     const trainerName = booking?.trainerName ?? "Unassigned trainer";
     const { trainerPaise } = splitPayment(payment.amountPaise);
-    payout = createTrainerPayout({
+    payout = await createTrainerPayout({
       paymentId: payment.id,
       bookingId: payment.bookingId,
       trainerName,
@@ -91,9 +91,9 @@ export async function POST(request: Request) {
         reference: payout.id,
       });
       if (attempt.status === "PAID") {
-        payout = markPayoutPaid(payout.id, attempt.reference, attempt.note) ?? payout;
+        payout = await markPayoutPaid(payout.id, attempt.reference, attempt.note) ?? payout;
       } else if (attempt.note) {
-        setPayoutNote(payout.id, attempt.note);
+        await setPayoutNote(payout.id, attempt.note);
       }
     } catch {
       // Settlement failures never fail the capture — org settles manually.

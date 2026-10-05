@@ -1,12 +1,6 @@
-// ARAMYA payments ledger (SQLite, same db file as bookings store).
-// payments: user → org captures. payouts: org → trainer shares.
-
-import { DatabaseSync } from "node:sqlite";
-import { mkdirSync } from "fs";
-import path from "path";
-
-const DATA_DIR = path.join(process.cwd(), ".aramya-data");
-const DB_PATH = path.join(DATA_DIR, "db.sqlite");
+// ARAMYA payments ledger (SQLite local file, Turso when configured).
+// Tables are created by src/lib/server/db.ts ensureSchema.
+import { getDb, type DbRow } from "@/lib/server/db";
 
 export type PaymentStatus = "CREATED" | "CAPTURED" | "FAILED";
 export type PayoutStatus = "PAYABLE" | "PAID";
@@ -38,47 +32,6 @@ export type PayoutRow = {
   paidAt: string | null;
 };
 
-let database: DatabaseSync | null = null;
-
-function db() {
-  if (!database) {
-    mkdirSync(DATA_DIR, { recursive: true });
-    database = new DatabaseSync(DB_PATH);
-    database.exec("PRAGMA journal_mode=WAL");
-    database.exec(`
-      CREATE TABLE IF NOT EXISTS payments (
-        id TEXT PRIMARY KEY,
-        booking_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        amount_paise INTEGER NOT NULL,
-        currency TEXT NOT NULL,
-        status TEXT NOT NULL,
-        provider TEXT NOT NULL,
-        order_id TEXT UNIQUE NOT NULL,
-        razorpay_payment_id TEXT,
-        created_at TEXT NOT NULL,
-        captured_at TEXT
-      );
-      CREATE INDEX IF NOT EXISTS idx_payments_booking ON payments(booking_id);
-      CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
-      CREATE TABLE IF NOT EXISTS payouts (
-        id TEXT PRIMARY KEY,
-        payment_id TEXT UNIQUE NOT NULL,
-        booking_id TEXT NOT NULL,
-        trainer_name TEXT NOT NULL,
-        amount_paise INTEGER NOT NULL,
-        status TEXT NOT NULL,
-        reference TEXT,
-        note TEXT,
-        created_at TEXT NOT NULL,
-        paid_at TEXT
-      );
-      CREATE INDEX IF NOT EXISTS idx_payouts_trainer ON payouts(trainer_name);
-    `);
-  }
-  return database;
-}
-
 function randomId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -99,6 +52,10 @@ type RawPayment = {
   captured_at: string | null;
 };
 
+function asRawPayment(row: DbRow): RawPayment {
+  return row as unknown as RawPayment;
+}
+
 function toPayment(row: RawPayment): PaymentRow {
   return {
     id: row.id,
@@ -115,57 +72,66 @@ function toPayment(row: RawPayment): PaymentRow {
   };
 }
 
-export function createPayment(args: {
+export async function createPayment(args: {
   bookingId: string;
   userId: string;
   amountPaise: number;
   currency: string;
   provider: string;
   orderId: string;
-}): PaymentRow {
+}): Promise<PaymentRow> {
   const id = randomId();
-  db()
+  const database = await getDb();
+  await database
     .prepare(
       "INSERT INTO payments (id, booking_id, user_id, amount_paise, currency, status, provider, order_id, created_at) VALUES (?, ?, ?, ?, ?, 'CREATED', ?, ?, ?)",
     )
     .run(id, args.bookingId, args.userId, args.amountPaise, args.currency, args.provider, args.orderId, new Date().toISOString());
-  return getPaymentById(id) as PaymentRow;
+  const created = await getPaymentById(id);
+  if (!created) throw new Error("Payment record not found after insert.");
+  return created;
 }
 
-export function getPaymentById(id: string): PaymentRow | null {
-  const row = db().prepare("SELECT * FROM payments WHERE id = ?").get(id) as RawPayment | undefined;
-  return row ? toPayment(row) : null;
+export async function getPaymentById(id: string): Promise<PaymentRow | null> {
+  const database = await getDb();
+  const row = await database.prepare("SELECT * FROM payments WHERE id = ?").get(id);
+  return row ? toPayment(asRawPayment(row)) : null;
 }
 
-export function findPaymentByOrderId(orderId: string): PaymentRow | null {
-  const row = db().prepare("SELECT * FROM payments WHERE order_id = ?").get(orderId) as RawPayment | undefined;
-  return row ? toPayment(row) : null;
+export async function findPaymentByOrderId(orderId: string): Promise<PaymentRow | null> {
+  const database = await getDb();
+  const row = await database.prepare("SELECT * FROM payments WHERE order_id = ?").get(orderId);
+  return row ? toPayment(asRawPayment(row)) : null;
 }
 
-export function findCapturedPaymentForBooking(bookingId: string): PaymentRow | null {
-  const row = db()
+export async function findCapturedPaymentForBooking(bookingId: string): Promise<PaymentRow | null> {
+  const database = await getDb();
+  const row = await database
     .prepare("SELECT * FROM payments WHERE booking_id = ? AND status = 'CAPTURED' ORDER BY created_at DESC LIMIT 1")
-    .get(bookingId) as RawPayment | undefined;
-  return row ? toPayment(row) : null;
+    .get(bookingId);
+  return row ? toPayment(asRawPayment(row)) : null;
 }
 
-export function listPaymentsForBooking(bookingId: string, userId: string): PaymentRow[] {
-  const rows = db()
+export async function listPaymentsForBooking(bookingId: string, userId: string): Promise<PaymentRow[]> {
+  const database = await getDb();
+  const rows = await database
     .prepare("SELECT * FROM payments WHERE booking_id = ? AND user_id = ? ORDER BY created_at DESC")
-    .all(bookingId, userId) as RawPayment[];
-  return rows.map(toPayment);
+    .all(bookingId, userId);
+  return rows.map((row) => toPayment(asRawPayment(row)));
 }
 
-export function capturePayment(id: string, razorpayPaymentId: string): PaymentRow | null {
+export async function capturePayment(id: string, razorpayPaymentId: string): Promise<PaymentRow | null> {
   const now = new Date().toISOString();
-  db()
+  const database = await getDb();
+  await database
     .prepare("UPDATE payments SET status = 'CAPTURED', razorpay_payment_id = ?, captured_at = ? WHERE id = ? AND status = 'CREATED'")
     .run(razorpayPaymentId, now, id);
   return getPaymentById(id);
 }
 
-export function markPaymentFailed(id: string): PaymentRow | null {
-  db().prepare("UPDATE payments SET status = 'FAILED' WHERE id = ? AND status = 'CREATED'").run(id);
+export async function markPaymentFailed(id: string): Promise<PaymentRow | null> {
+  const database = await getDb();
+  await database.prepare("UPDATE payments SET status = 'FAILED' WHERE id = ? AND status = 'CREATED'").run(id);
   return getPaymentById(id);
 }
 
@@ -184,6 +150,10 @@ type RawPayout = {
   paid_at: string | null;
 };
 
+function asRawPayout(row: DbRow): RawPayout {
+  return row as unknown as RawPayout;
+}
+
 function toPayout(row: RawPayout): PayoutRow {
   return {
     id: row.id,
@@ -199,42 +169,48 @@ function toPayout(row: RawPayout): PayoutRow {
   };
 }
 
-export function createTrainerPayout(args: {
+export async function createTrainerPayout(args: {
   paymentId: string;
   bookingId: string;
   trainerName: string;
   amountPaise: number;
-}): PayoutRow {
+}): Promise<PayoutRow> {
   const id = randomId();
-  db()
+  const database = await getDb();
+  await database
     .prepare(
       "INSERT INTO payouts (id, payment_id, booking_id, trainer_name, amount_paise, status, created_at) VALUES (?, ?, ?, ?, ?, 'PAYABLE', ?)",
     )
     .run(id, args.paymentId, args.bookingId, args.trainerName, args.amountPaise, new Date().toISOString());
-  const row = db().prepare("SELECT * FROM payouts WHERE id = ?").get(id) as RawPayout;
-  return toPayout(row);
+  const row = await database.prepare("SELECT * FROM payouts WHERE id = ?").get(id);
+  if (!row) throw new Error("Payout record not found after insert.");
+  return toPayout(asRawPayout(row));
 }
 
-export function findPayoutForPayment(paymentId: string): PayoutRow | null {
-  const row = db().prepare("SELECT * FROM payouts WHERE payment_id = ?").get(paymentId) as RawPayout | undefined;
-  return row ? toPayout(row) : null;
+export async function findPayoutForPayment(paymentId: string): Promise<PayoutRow | null> {
+  const database = await getDb();
+  const row = await database.prepare("SELECT * FROM payouts WHERE payment_id = ?").get(paymentId);
+  return row ? toPayout(asRawPayout(row)) : null;
 }
 
-export function markPayoutPaid(id: string, reference: string | null, note: string | null): PayoutRow | null {
-  db()
+export async function markPayoutPaid(id: string, reference: string | null, note: string | null): Promise<PayoutRow | null> {
+  const database = await getDb();
+  await database
     .prepare("UPDATE payouts SET status = 'PAID', reference = ?, note = ?, paid_at = ? WHERE id = ?")
     .run(reference, note, new Date().toISOString(), id);
-  const row = db().prepare("SELECT * FROM payouts WHERE id = ?").get(id) as RawPayout | undefined;
-  return row ? toPayout(row) : null;
+  const row = await database.prepare("SELECT * FROM payouts WHERE id = ?").get(id);
+  return row ? toPayout(asRawPayout(row)) : null;
 }
 
-export function setPayoutNote(id: string, note: string): void {
-  db().prepare("UPDATE payouts SET note = ? WHERE id = ?").run(note, id);
+export async function setPayoutNote(id: string, note: string): Promise<void> {
+  const database = await getDb();
+  await database.prepare("UPDATE payouts SET note = ? WHERE id = ?").run(note, id);
 }
 
-export function listPayoutsForTrainer(trainerName: string): PayoutRow[] {
-  const rows = db()
+export async function listPayoutsForTrainer(trainerName: string): Promise<PayoutRow[]> {
+  const database = await getDb();
+  const rows = await database
     .prepare("SELECT * FROM payouts WHERE trainer_name = ? ORDER BY created_at DESC")
-    .all(trainerName) as RawPayout[];
-  return rows.map(toPayout);
+    .all(trainerName);
+  return rows.map((row) => toPayout(asRawPayout(row)));
 }

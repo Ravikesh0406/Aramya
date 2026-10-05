@@ -24,20 +24,20 @@ export async function GET(request: Request) {
     if (!bookingId) {
       return Response.json({ error: "bookingId is required." }, { status: 400 });
     }
-    const payments = listPaymentsForBooking(bookingId, user.id);
-    const captured = findCapturedPaymentForBooking(bookingId);
+    const payments = await listPaymentsForBooking(bookingId, user.id);
+    const captured = await findCapturedPaymentForBooking(bookingId);
     const mine = captured && payments.some((p) => p.id === captured.id) ? captured : null;
     return Response.json({ payments, paid: mine !== null, captured: mine });
   }
 
   // Trainer: surface captured payments on bookings carrying their name,
   // so trainers can see which accepted bookings are paid by the customer.
-  const bookings = listVisibleBookings(user).filter(
+  const bookings = (await listVisibleBookings(user)).filter(
     (b) => b.trainerName === user.name && (!bookingId || b.id === bookingId),
   );
   const paid: { bookingId: string; payment: PaymentRow }[] = [];
   for (const b of bookings) {
-    const captured = findCapturedPaymentForBooking(b.id);
+    const captured = await findCapturedPaymentForBooking(b.id);
     if (captured) paid.push({ bookingId: b.id, payment: captured });
   }
   return Response.json({ paid });

@@ -13,7 +13,7 @@ export function getSessionToken(request: Request) {
 }
 
 export async function getCurrentUser(request: Request): Promise<UserProfile | null> {
-  return getUserBySessionToken(getSessionToken(request));
+  return await getUserBySessionToken(getSessionToken(request));
 }
 
 export function setSessionCookie(headers: Headers, token: string) {
@@ -41,5 +41,5 @@ export function clearSessionCookie(headers: Headers) {
 }
 
 export async function logoutRequest(request: Request) {
-  deleteSessionToken(getSessionToken(request));
+  await deleteSessionToken(getSessionToken(request));
 }

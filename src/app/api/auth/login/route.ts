@@ -27,12 +27,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Contact details and password are required." }, { status: 400 });
   }
 
-  const user = findUserByContactRole(contact, role);
+  const user = await findUserByContactRole(contact, role);
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return Response.json({ error: "Invalid contact details, role, or password." }, { status: 401 });
   }
 
-  const session = createSession(user.id);
+  const session = await createSession(user.id);
   const headers = new Headers({ "Content-Type": "application/json" });
   setSessionCookie(headers, session.token);
   return new Response(JSON.stringify({ user: { id: user.id, name: user.name, contact: user.contact, role: user.role } }), {

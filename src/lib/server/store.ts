@@ -1,6 +1,3 @@
-import { DatabaseSync } from "node:sqlite";
-import { mkdirSync } from "fs";
-import path from "path";
 import type {
   BookingInput,
   BookingRequest,
@@ -9,9 +6,7 @@ import type {
   UserRole,
 } from "@/lib/models";
 import { haversineKm } from "@/lib/geo";
-
-const DATA_DIR = path.join(process.cwd(), ".aramya-data");
-const DB_PATH = path.join(DATA_DIR, "db.sqlite");
+import { getDb } from "@/lib/server/db";
 
 type StoredUser = UserProfile & { passwordHash: string };
 
@@ -46,64 +41,6 @@ export type CreateUserInput = {
 
 export type PublicBooking = BookingRequest;
 
-let database: DatabaseSync | null = null;
-
-function db() {
-  if (!database) {
-    mkdirSync(DATA_DIR, { recursive: true });
-    database = new DatabaseSync(DB_PATH);
-    database.exec("PRAGMA journal_mode=WAL");
-    database.exec("PRAGMA foreign_keys=ON");
-    database.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        contact TEXT NOT NULL,
-        role TEXT NOT NULL,
-        password_hash TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        UNIQUE(contact, role)
-      );
-      CREATE TABLE IF NOT EXISTS auth_sessions (
-        token TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        expires_at TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS bookings (
-        id TEXT PRIMARY KEY,
-        reference TEXT UNIQUE NOT NULL,
-        customer_id TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        location TEXT NOT NULL,
-        service_slug TEXT NOT NULL,
-        service_name TEXT NOT NULL,
-        days TEXT NOT NULL,
-        time TEXT NOT NULL,
-        specific_time TEXT NOT NULL,
-        status TEXT NOT NULL,
-        trainer_name TEXT,
-        proposed_days TEXT,
-        proposed_time TEXT,
-        proposed_specific_time TEXT,
-        proposed_by TEXT
-      );
-      CREATE INDEX IF NOT EXISTS idx_bookings_customer ON bookings(customer_id);
-      CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
-    `);
-    // Phase 2 (geo-matching): bookings created before lat/lng existed keep
-    // NULL coords and stay visible to all trainers as a fallback.
-    const existingCols = database
-      .prepare("PRAGMA table_info(bookings)")
-      .all() as { name: string }[];
-    const colNames = new Set(existingCols.map((col) => col.name));
-    if (!colNames.has("lat")) database.exec("ALTER TABLE bookings ADD COLUMN lat REAL");
-    if (!colNames.has("lng")) database.exec("ALTER TABLE bookings ADD COLUMN lng REAL");
-  }
-  return database;
-}
-
 function randomId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -122,6 +59,10 @@ function parseJsonArray(value: string | null): string[] | null {
 
 function validCoord(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asBookingRow(row: Record<string, unknown>): BookingRow {
+  return row as unknown as BookingRow;
 }
 
 function toPublicBooking(row: BookingRow, distanceKm: number | null = null): BookingRequest {
@@ -146,40 +87,52 @@ function toPublicBooking(row: BookingRow, distanceKm: number | null = null): Boo
   };
 }
 
-export function findUserByContactRole(contact: string, role: UserRole): StoredUser | null {
-  const row = db()
+export async function findUserByContactRole(contact: string, role: UserRole): Promise<StoredUser | null> {
+  const database = await getDb();
+  const row = await database
     .prepare("SELECT id, name, contact, role, password_hash AS passwordHash FROM users WHERE contact = ? AND role = ?")
     .get(contact, role) as { id: string; name: string; contact: string; role: UserRole; passwordHash: string } | undefined;
   return row ? { id: row.id, name: row.name, contact: row.contact, role: row.role, passwordHash: row.passwordHash } : null;
 }
 
-export function createUser(input: CreateUserInput): UserProfile {
-  const existing = findUserByContactRole(input.contact, input.role);
+export async function listUsersByRole(role: UserRole): Promise<UserProfile[]> {
+  const database = await getDb();
+  const rows = await database
+    .prepare("SELECT id, name, contact, role FROM users WHERE role = ? ORDER BY created_at DESC")
+    .all(role) as { id: string; name: string; contact: string; role: UserRole }[];
+  return rows.map((row) => ({ id: row.id, name: row.name, contact: row.contact, role: row.role }));
+}
+
+export async function createUser(input: CreateUserInput): Promise<UserProfile> {
+  const existing = await findUserByContactRole(input.contact, input.role);
   if (existing) {
     throw new Error("An account already exists for this contact and role.");
   }
 
   const id = randomId();
-  db()
+  const database = await getDb();
+  await database
     .prepare("INSERT INTO users (id, name, contact, role, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)")
     .run(id, input.name, input.contact, input.role, input.passwordHash, new Date().toISOString());
 
   return { id, name: input.name, contact: input.contact, role: input.role };
 }
 
-export function createSession(userId: string) {
+export async function createSession(userId: string) {
   const token = randomId();
   const createdAt = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
-  db()
+  const database = await getDb();
+  await database
     .prepare("INSERT INTO auth_sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)")
     .run(token, userId, createdAt, expiresAt);
   return { token, createdAt, expiresAt };
 }
 
-export function getUserBySessionToken(token: string | undefined): UserProfile | null {
+export async function getUserBySessionToken(token: string | undefined): Promise<UserProfile | null> {
   if (!token) return null;
-  const row = db()
+  const database = await getDb();
+  const row = await database
     .prepare(`
       SELECT u.id, u.name, u.contact, u.role
       FROM auth_sessions s
@@ -190,9 +143,10 @@ export function getUserBySessionToken(token: string | undefined): UserProfile | 
   return row ? { id: row.id, name: row.name, contact: row.contact, role: row.role } : null;
 }
 
-export function deleteSessionToken(token: string | undefined) {
+export async function deleteSessionToken(token: string | undefined) {
   if (!token) return;
-  db().prepare("DELETE FROM auth_sessions WHERE token = ?").run(token);
+  const database = await getDb();
+  await database.prepare("DELETE FROM auth_sessions WHERE token = ?").run(token);
 }
 
 function maskLocationForTrainer(user: UserProfile, location: string, status: BookingStatus) {
@@ -208,12 +162,13 @@ function bookingRowForTrainer(user: UserProfile, row: BookingRow): BookingRow {
   };
 }
 
-export function listVisibleBookings(user: UserProfile, near?: { lat: number; lng: number; radiusKm: number }) {
+export async function listVisibleBookings(user: UserProfile, near?: { lat: number; lng: number; radiusKm: number }) {
+  const database = await getDb();
   if (user.role !== "trainer") {
-    const rows = db().prepare("SELECT * FROM bookings WHERE customer_id = ? ORDER BY created_at DESC").all(user.id) as BookingRow[];
+    const rows = await database.prepare("SELECT * FROM bookings WHERE customer_id = ? ORDER BY created_at DESC").all(user.id) as unknown as BookingRow[];
     return rows.map((row) => toPublicBooking(row));
   }
-  const rows = db().prepare("SELECT * FROM bookings ORDER BY created_at DESC").all() as BookingRow[];
+  const rows = await database.prepare("SELECT * FROM bookings ORDER BY created_at DESC").all() as unknown as BookingRow[];
   const withDistance = rows.map((row) => {
     const masked = bookingRowForTrainer(user, row);
     if (
@@ -235,11 +190,12 @@ export function listVisibleBookings(user: UserProfile, near?: { lat: number; lng
   return filtered.map(({ row, distanceKm }) => toPublicBooking(row, distanceKm));
 }
 
-export function createBookingForCustomer(customerId: string, input: BookingInput): BookingRequest {
+export async function createBookingForCustomer(customerId: string, input: BookingInput): Promise<BookingRequest> {
   const id = randomId();
   const reference = `AR-${id.slice(0, 8).toUpperCase()}`;
   const now = new Date().toISOString();
-  db()
+  const database = await getDb();
+  await database
     .prepare(`
       INSERT INTO bookings (
         id, reference, customer_id, created_at, updated_at, location, lat, lng, service_slug,
@@ -263,9 +219,8 @@ export function createBookingForCustomer(customerId: string, input: BookingInput
       "Requested",
       null,
     );
-  return toPublicBooking(
-    db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow,
-  );
+  const row = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return toPublicBooking(asBookingRow(row as Record<string, unknown>));
 }
 
 export type AcceptResult =
@@ -297,14 +252,15 @@ function timesClash(
 
 // First shared day on which the trainer already has an occupying booking,
 // or null when the slot is free. excludeId lets a booking ignore itself.
-export function trainerScheduleClash(
+export async function trainerScheduleClash(
   trainerName: string,
   days: string[],
   time: string,
   specificTime: string,
   excludeId?: string,
-): string | null {
-  const rows = db()
+): Promise<string | null> {
+  const database = await getDb();
+  const rows = await database
     .prepare("SELECT id, days, time, specific_time, status FROM bookings WHERE trainer_name = ?")
     .all(trainerName) as {
     id: string;
@@ -324,11 +280,13 @@ export function trainerScheduleClash(
   return null;
 }
 
-export function acceptBookingWithTrainer(id: string, trainerName: string): AcceptResult {
-  const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
-  if (!row) {
+export async function acceptBookingWithTrainer(id: string, trainerName: string): Promise<AcceptResult> {
+  const database = await getDb();
+  const raw = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  if (!raw) {
     return { ok: false, reason: "NOT_FOUND", detail: "Booking not found." };
   }
+  const row = asBookingRow(raw);
   if (row.status !== "Requested") {
     const holder = row.trainer_name ? ` by ${row.trainer_name}` : "";
     return {
@@ -338,7 +296,7 @@ export function acceptBookingWithTrainer(id: string, trainerName: string): Accep
     };
   }
   const days = parseJsonArray(row.days) ?? [];
-  const clashDay = trainerScheduleClash(trainerName, days, row.time, row.specific_time, id);
+  const clashDay = await trainerScheduleClash(trainerName, days, row.time, row.specific_time, id);
   if (clashDay) {
     const when = row.time === "Specific time" && row.specific_time ? row.specific_time : row.time;
     return {
@@ -349,80 +307,89 @@ export function acceptBookingWithTrainer(id: string, trainerName: string): Accep
   }
   // Atomic transition — a concurrent accept wins instead of overwriting.
   const updatedAt = new Date().toISOString();
-  const result = db()
+  const result = await database
     .prepare("UPDATE bookings SET status = 'Confirmed', trainer_name = ?, updated_at = ? WHERE id = ? AND status = 'Requested'")
-    .run(trainerName, updatedAt, id) as { changes: number | bigint };
+    .run(trainerName, updatedAt, id);
   if (Number(result.changes) === 0) {
     return { ok: false, reason: "NOT_REQUESTED", detail: "Just taken by another trainer — please refresh." };
   }
-  const updated = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow;
-  return { ok: true, booking: toPublicBooking(updated) };
+  const updated = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return { ok: true, booking: toPublicBooking(asBookingRow(updated as Record<string, unknown>)) };
 }
 
-export function getBookingCustomerId(id: string) {
-  const row = db().prepare("SELECT customer_id FROM bookings WHERE id = ?").get(id) as { customer_id: string } | undefined;
+export async function getBookingCustomerId(id: string) {
+  const database = await getDb();
+  const row = await database.prepare("SELECT customer_id FROM bookings WHERE id = ?").get(id) as { customer_id: string } | undefined;
   return row?.customer_id ?? null;
 }
 
-export function cancelBooking(id: string) {
+export async function cancelBooking(id: string) {
   const updatedAt = new Date().toISOString();
-  db().prepare("UPDATE bookings SET status = 'Cancelled', updated_at = ? WHERE id = ?").run(updatedAt, id);
-  const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
-  return row ? toPublicBooking(row) : null;
+  const database = await getDb();
+  await database.prepare("UPDATE bookings SET status = 'Cancelled', updated_at = ? WHERE id = ?").run(updatedAt, id);
+  const row = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return row ? toPublicBooking(asBookingRow(row)) : null;
 }
 
-export function requestReschedule(
+export async function requestReschedule(
   id: string,
   proposed: { days: string[]; time: string; specificTime: string; proposedByRole: UserRole },
 ) {
   const updatedAt = new Date().toISOString();
-  db()
+  const database = await getDb();
+  await database
     .prepare("UPDATE bookings SET status = 'Reschedule Requested', proposed_days = ?, proposed_time = ?, proposed_specific_time = ?, proposed_by = ?, updated_at = ? WHERE id = ?")
     .run(JSON.stringify(proposed.days), proposed.time, proposed.specificTime, proposed.proposedByRole, updatedAt, id);
-  const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
-  return row ? toPublicBooking(row) : null;
+  const row = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return row ? toPublicBooking(asBookingRow(row)) : null;
 }
 
-export function acceptReschedule(id: string) {
-  const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
-  if (!row) return null;
+export async function acceptReschedule(id: string) {
+  const database = await getDb();
+  const raw = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  if (!raw) return null;
+  const row = asBookingRow(raw);
   const proposedDays = parseJsonArray(row.proposed_days);
   const proposedTime = row.proposed_time;
   const proposedSpecificTime = row.proposed_specific_time;
   if (!proposedDays || !proposedTime) return null;
 
   const updatedAt = new Date().toISOString();
-  db()
+  await database
     .prepare("UPDATE bookings SET status = 'Rescheduled', days = ?, time = ?, specific_time = ?, proposed_days = NULL, proposed_time = NULL, proposed_specific_time = NULL, proposed_by = NULL, updated_at = ? WHERE id = ?")
     .run(JSON.stringify(proposedDays), proposedTime, proposedSpecificTime ?? "", updatedAt, id);
-  const updated = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow;
-  return toPublicBooking(updated);
+  const updated = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return toPublicBooking(asBookingRow(updated as Record<string, unknown>));
 }
 
-export function declineReschedule(id: string) {
+export async function declineReschedule(id: string) {
   const updatedAt = new Date().toISOString();
-  db()
+  const database = await getDb();
+  await database
     .prepare("UPDATE bookings SET status = 'Confirmed', proposed_days = NULL, proposed_time = NULL, proposed_specific_time = NULL, proposed_by = NULL, updated_at = ? WHERE id = ?")
     .run(updatedAt, id);
-  const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
-  return row ? toPublicBooking(row) : null;
+  const row = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return row ? toPublicBooking(asBookingRow(row)) : null;
 }
 
-export function updateBookingStatus(id: string, status: BookingStatus) {
+export async function updateBookingStatus(id: string, status: BookingStatus) {
   const updatedAt = new Date().toISOString();
-  db().prepare("UPDATE bookings SET status = ?, updated_at = ? WHERE id = ?").run(status, updatedAt, id);
-  const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
-  return row ? toPublicBooking(row) : null;
+  const database = await getDb();
+  await database.prepare("UPDATE bookings SET status = ?, updated_at = ? WHERE id = ?").run(status, updatedAt, id);
+  const row = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return row ? toPublicBooking(asBookingRow(row)) : null;
 }
 
 // Minimal booking facts for the payments layer (ownership + trainer + status).
-export function getBookingForPayment(id: string): {
+export async function getBookingForPayment(id: string): Promise<{
   id: string;
   customerId: string;
   trainerName: string | null;
   status: BookingStatus;
-} | null {
-  const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
-  if (!row) return null;
+} | null> {
+  const database = await getDb();
+  const raw = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  if (!raw) return null;
+  const row = asBookingRow(raw);
   return { id: row.id, customerId: row.customer_id, trainerName: row.trainer_name, status: row.status };
 }

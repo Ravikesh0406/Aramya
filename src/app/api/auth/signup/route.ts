@@ -37,8 +37,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = createUser({ name, contact, role, passwordHash: hashPassword(password) });
-    const session = createSession(user.id);
+    const user = await createUser({ name, contact, role, passwordHash: hashPassword(password) });
+    const session = await createSession(user.id);
     const headers = new Headers({ "Content-Type": "application/json" });
     setSessionCookie(headers, session.token);
     return new Response(JSON.stringify({ user }), { status: 201, headers });

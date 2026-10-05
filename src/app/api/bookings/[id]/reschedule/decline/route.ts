@@ -12,7 +12,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  const booking = declineReschedule(id);
+  const booking = await declineReschedule(id);
   if (!booking) {
     return Response.json({ error: "Booking not found." }, { status: 404 });
   }

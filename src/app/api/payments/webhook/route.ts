@@ -49,17 +49,17 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, ignored: true });
   }
 
-  const payment = findPaymentByOrderId(entity.order_id);
+  const payment = await findPaymentByOrderId(entity.order_id);
   if (!payment) {
     return Response.json({ ok: true, ignored: true });
   }
 
   if (event.event === "payment.captured" && payment.status === "CREATED") {
-    capturePayment(payment.id, entity.id ?? payment.razorpayPaymentId ?? "webhook");
-    if (!findPayoutForPayment(payment.id)) {
-      const booking = getBookingForPayment(payment.bookingId);
+    await capturePayment(payment.id, entity.id ?? payment.razorpayPaymentId ?? "webhook");
+    if (!await findPayoutForPayment(payment.id)) {
+      const booking = await getBookingForPayment(payment.bookingId);
       const { trainerPaise } = splitPayment(payment.amountPaise);
-      createTrainerPayout({
+      await createTrainerPayout({
         paymentId: payment.id,
         bookingId: payment.bookingId,
         trainerName: booking?.trainerName ?? "Unassigned trainer",
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       });
     }
   } else if (event.event === "payment.failed" && payment.status === "CREATED") {
-    markPaymentFailed(payment.id);
+    await markPaymentFailed(payment.id);
   }
 
   return Response.json({ ok: true });

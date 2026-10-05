@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "bookingId is required." }, { status: 400 });
   }
 
-  const booking = getBookingForPayment(bookingId);
+  const booking = await getBookingForPayment(bookingId);
   if (!booking || booking.customerId !== user.id) {
     return Response.json({ error: "Booking not found." }, { status: 404 });
   }
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       { status: 409 },
     );
   }
-  if (findCapturedPaymentForBooking(bookingId)) {
+  if (await findCapturedPaymentForBooking(bookingId)) {
     return Response.json({ error: "This booking is already paid." }, { status: 409 });
   }
 
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     notes: { bookingId, userId: user.id, plan: planKind },
   });
 
-  const payment = createPayment({
+  const payment = await createPayment({
     bookingId,
     userId: user.id,
     amountPaise: order.amountPaise,

@@ -17,10 +17,12 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] Smoke test: near sees first at 0 km, far doesn't see it, no-GPS sees all
 - [x] Fixed: absent query params no longer filter around (0,0) (`Number(null)===0` trap)
 
-## Phase 3 — Portable database (before any public link)
-- [ ] Decision: Turso vs Postgres (default: Turso)
-- [ ] DB provider abstraction, env wiring, migration of 5 tables
-- [ ] Acceptance: redeploy keeps all data
+## Phase 3 — Portable database ✅ DONE (Turso chosen)
+- [x] Async `src/lib/server/db.ts` provider: local node:sqlite default, Turso when `TURSO_DATABASE_URL` set
+- [x] store.ts + payments.ts converted; all route callers awaited
+- [x] `npm run db:migrate-to-turso` one-way copy script (idempotent)
+- [x] `docs/ENVIRONMENT.md` documents all env vars
+- [x] Full regression smoke passed on local backend (signup→book→accept→pay→earnings→geo)
 
 ## Phase 4 — Complete the money loop
 - [ ] Monthly (₹4,500) payable, plan-aware PayButton

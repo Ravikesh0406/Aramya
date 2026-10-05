@@ -12,7 +12,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  const booking = acceptReschedule(id);
+  const booking = await acceptReschedule(id);
   if (!booking) {
     return Response.json({ error: "Booking not found or not awaiting a change." }, { status: 404 });
   }

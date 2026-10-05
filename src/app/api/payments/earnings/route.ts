@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Trainers only." }, { status: 403 });
   }
 
-  const payouts = listPayoutsForTrainer(user.name);
+  const payouts = await listPayoutsForTrainer(user.name);
   const payablePaise = payouts
     .filter((p) => p.status === "PAYABLE")
     .reduce((sum, p) => sum + p.amountPaise, 0);

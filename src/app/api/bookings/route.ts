@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     user.role === "trainer" && Number.isFinite(lat) && Number.isFinite(lng)
       ? { lat, lng, radiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : DEFAULT_MATCH_RADIUS_KM }
       : undefined;
-  const bookings = listVisibleBookings(user, near);
+  const bookings = await listVisibleBookings(user, near);
   return Response.json({ bookings });
 }
 
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const booking = createBookingForCustomer(user.id, {
+  const booking = await createBookingForCustomer(user.id, {
     location: input.location.trim(),
     lat,
     lng,
