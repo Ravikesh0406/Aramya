@@ -8,6 +8,7 @@ import type {
   UserProfile,
   UserRole,
 } from "@/lib/models";
+import { haversineKm } from "@/lib/geo";
 
 const DATA_DIR = path.join(process.cwd(), ".aramya-data");
 const DB_PATH = path.join(DATA_DIR, "db.sqlite");
@@ -21,6 +22,8 @@ type BookingRow = {
   created_at: string;
   updated_at: string;
   location: string;
+  lat: number | null;
+  lng: number | null;
   service_slug: string;
   service_name: string;
   days: string;
@@ -89,6 +92,14 @@ function db() {
       CREATE INDEX IF NOT EXISTS idx_bookings_customer ON bookings(customer_id);
       CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
     `);
+    // Phase 2 (geo-matching): bookings created before lat/lng existed keep
+    // NULL coords and stay visible to all trainers as a fallback.
+    const existingCols = database
+      .prepare("PRAGMA table_info(bookings)")
+      .all() as { name: string }[];
+    const colNames = new Set(existingCols.map((col) => col.name));
+    if (!colNames.has("lat")) database.exec("ALTER TABLE bookings ADD COLUMN lat REAL");
+    if (!colNames.has("lng")) database.exec("ALTER TABLE bookings ADD COLUMN lng REAL");
   }
   return database;
 }
@@ -109,12 +120,17 @@ function parseJsonArray(value: string | null): string[] | null {
   }
 }
 
-function toPublicBooking(row: BookingRow): BookingRequest {
+function validCoord(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function toPublicBooking(row: BookingRow, distanceKm: number | null = null): BookingRequest {
   return {
     id: row.id,
     reference: row.reference,
     createdAt: row.created_at,
     location: row.location,
+    distanceKm,
     serviceSlug: row.service_slug,
     serviceName: row.service_name,
     days: parseJsonArray(row.days) ?? [],
@@ -192,11 +208,31 @@ function bookingRowForTrainer(user: UserProfile, row: BookingRow): BookingRow {
   };
 }
 
-export function listVisibleBookings(user: UserProfile) {
-  const rows = (user.role === "trainer"
-    ? db().prepare("SELECT * FROM bookings ORDER BY created_at DESC").all()
-    : db().prepare("SELECT * FROM bookings WHERE customer_id = ? ORDER BY created_at DESC").all(user.id)) as BookingRow[];
-  return rows.map((row) => toPublicBooking(user.role === "trainer" ? bookingRowForTrainer(user, row) : row));
+export function listVisibleBookings(user: UserProfile, near?: { lat: number; lng: number; radiusKm: number }) {
+  if (user.role !== "trainer") {
+    const rows = db().prepare("SELECT * FROM bookings WHERE customer_id = ? ORDER BY created_at DESC").all(user.id) as BookingRow[];
+    return rows.map((row) => toPublicBooking(row));
+  }
+  const rows = db().prepare("SELECT * FROM bookings ORDER BY created_at DESC").all() as BookingRow[];
+  const withDistance = rows.map((row) => {
+    const masked = bookingRowForTrainer(user, row);
+    if (
+      !near ||
+      row.lat == null ||
+      row.lng == null ||
+      !Number.isFinite(row.lat) ||
+      !Number.isFinite(row.lng)
+    ) {
+      // No fix on either side (or legacy row): include without a distance.
+      return { row: masked, distanceKm: null as number | null };
+    }
+    return { row: masked, distanceKm: haversineKm(near.lat, near.lng, row.lat, row.lng) };
+  });
+  const filtered = near
+    ? withDistance.filter(({ distanceKm }) => distanceKm == null || distanceKm <= near.radiusKm)
+    : withDistance;
+  filtered.sort((a, b) => (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY));
+  return filtered.map(({ row, distanceKm }) => toPublicBooking(row, distanceKm));
 }
 
 export function createBookingForCustomer(customerId: string, input: BookingInput): BookingRequest {
@@ -206,9 +242,9 @@ export function createBookingForCustomer(customerId: string, input: BookingInput
   db()
     .prepare(`
       INSERT INTO bookings (
-        id, reference, customer_id, created_at, updated_at, location, service_slug,
+        id, reference, customer_id, created_at, updated_at, location, lat, lng, service_slug,
         service_name, days, time, specific_time, status, trainer_name
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .run(
       id,
@@ -217,6 +253,8 @@ export function createBookingForCustomer(customerId: string, input: BookingInput
       now,
       now,
       input.location,
+      validCoord(input.lat),
+      validCoord(input.lng),
       input.serviceSlug,
       input.serviceName,
       JSON.stringify(input.days),

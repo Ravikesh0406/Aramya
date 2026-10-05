@@ -466,6 +466,7 @@ export function BookingFlow() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
   const [location, setLocation] = useState(() => searchParams?.get("location") ?? "");
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState("");
   const [locating, setLocating] = useState(false);
   const [service, setService] = useState<string | null>(() => {
@@ -495,8 +496,10 @@ export function BookingFlow() {
     try {
       const current = await getCurrentLocation();
       setLocation(current.label);
+      setCoords({ lat: current.coordinates.latitude, lng: current.coordinates.longitude });
     } catch (error) {
       setLocation("");
+      setCoords(null);
       setLocationError(getCurrentLocationErrorMessage(error));
     } finally {
       setLocating(false);
@@ -505,6 +508,8 @@ export function BookingFlow() {
 
   function updateLocation(value: string) {
     setLocation(value);
+    // Typed addresses carry no GPS fix — geo-matching needs coordinates.
+    setCoords(null);
     setLocationError("");
   }
 
@@ -523,6 +528,8 @@ export function BookingFlow() {
     try {
       const booking = await createBooking({
         location,
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
         serviceSlug: service,
         serviceName: serviceObj?.name ?? "Service",
         days,

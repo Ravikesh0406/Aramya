@@ -2,6 +2,7 @@ import { createBookingForCustomer, listVisibleBookings } from "@/lib/server/stor
 import { getCurrentUser } from "@/lib/server/session";
 import { SERVICES } from "@/lib/data";
 import { nextDateForDay } from "@/lib/dates";
+import { DEFAULT_MATCH_RADIUS_KM } from "@/lib/geo";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,22 @@ export async function GET(request: Request) {
   if (!user) {
     return Response.json({ error: "Sign in to view your bookings." }, { status: 401 });
   }
-  const bookings = listVisibleBookings(user);
+  // Trainers may pass their live GPS fix (?lat=&lng=[&radiusKm=]) to see
+  // nearby requests first — and only requests within the radius.
+  // NOTE: URLSearchParams.get returns null when absent, and Number(null)
+  // is 0 — so check presence before converting, or every unfiltered feed
+  // would silently filter around (0,0).
+  const params = new URL(request.url).searchParams;
+  const latRaw = params.get("lat");
+  const lngRaw = params.get("lng");
+  const lat = latRaw == null ? NaN : Number(latRaw);
+  const lng = lngRaw == null ? NaN : Number(lngRaw);
+  const radiusKm = Number(params.get("radiusKm") ?? DEFAULT_MATCH_RADIUS_KM);
+  const near =
+    user.role === "trainer" && Number.isFinite(lat) && Number.isFinite(lng)
+      ? { lat, lng, radiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : DEFAULT_MATCH_RADIUS_KM }
+      : undefined;
+  const bookings = listVisibleBookings(user, near);
   return Response.json({ bookings });
 }
 
@@ -35,6 +51,10 @@ export async function POST(request: Request) {
   const days = Array.isArray(input.days) && input.days.every((day) => typeof day === "string")
     ? (input.days as string[])
     : [];
+  // GPS fix is optional (older clients) but preferred — geo-matching
+  // only works for bookings stored with coordinates.
+  const lat = typeof input.lat === "number" ? input.lat : null;
+  const lng = typeof input.lng === "number" ? input.lng : null;
 
   if (
     typeof input.location !== "string" ||
@@ -75,6 +95,8 @@ export async function POST(request: Request) {
 
   const booking = createBookingForCustomer(user.id, {
     location: input.location.trim(),
+    lat,
+    lng,
     serviceSlug: validService.slug,
     serviceName: validService.name,
     days: uniqueDays,

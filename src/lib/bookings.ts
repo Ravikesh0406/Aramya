@@ -22,9 +22,18 @@ async function requestBooking(path: string, method = "GET", body?: unknown): Pro
   return data.booking;
 }
 
-export async function getBookings(): Promise<BookingRequest[]> {
+export type NearbyQuery = { lat: number; lng: number; radiusKm?: number };
+
+export async function getBookings(near?: NearbyQuery): Promise<BookingRequest[]> {
   try {
-    const response = await fetch("/api/bookings", { cache: "no-store" });
+    const params = new URLSearchParams();
+    if (near) {
+      params.set("lat", String(near.lat));
+      params.set("lng", String(near.lng));
+      if (near.radiusKm) params.set("radiusKm", String(near.radiusKm));
+    }
+    const query = params.size > 0 ? `?${params.toString()}` : "";
+    const response = await fetch(`/api/bookings${query}`, { cache: "no-store" });
     if (!response.ok) return [];
     const data = (await response.json()) as { bookings?: BookingRequest[] };
     return Array.isArray(data.bookings) ? data.bookings : [];
@@ -57,30 +66,34 @@ export async function declineReschedule(id: string) {
   return requestBooking(`/api/bookings/${id}/reschedule/decline`, "POST");
 }
 
-export function useBookings() {
+export function useBookings(near?: NearbyQuery | null) {
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const nearKey = near ? `${near.lat.toFixed(4)}:${near.lng.toFixed(4)}:${near.radiusKm ?? ""}` : "";
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const nextBookings = await getBookings();
+      const nextBookings = await getBookings(near ?? undefined);
       if (!cancelled) {
         setBookings(nextBookings);
         setLoading(false);
       }
     }
 
+    setLoading(true);
     void load();
-    window.addEventListener("storage", load);
-    window.addEventListener(EVENT_NAME, load);
+    const onChange = () => void load();
+    window.addEventListener("storage", onChange);
+    window.addEventListener(EVENT_NAME, onChange);
     return () => {
       cancelled = true;
-      window.removeEventListener("storage", load);
-      window.removeEventListener(EVENT_NAME, load);
+      window.removeEventListener("storage", onChange);
+      window.removeEventListener(EVENT_NAME, onChange);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nearKey]);
 
   return { bookings, loading };
 }

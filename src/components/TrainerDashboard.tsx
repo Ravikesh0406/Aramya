@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Container, Overline, ButtonLink, StatusBadge } from "@/components/ui";
 import { Button } from "@/components/ui";
-import { CalendarIcon, ClockIcon, LocationIcon } from "@/components/Icons";
+import { CalendarIcon, ClockIcon, LocationIcon, CrosshairIcon } from "@/components/Icons";
 import {
   useBookings,
   acceptBooking,
@@ -12,11 +12,18 @@ import {
 } from "@/lib/bookings";
 import { SERVICES } from "@/lib/data";
 import { useCurrentUser } from "@/lib/auth";
+import { getCurrentLocation, getCurrentLocationErrorMessage } from "@/lib/geolocation";
+import { DEFAULT_MATCH_RADIUS_KM, formatKm } from "@/lib/geo";
 import { EarningsPanel } from "@/components/EarningsPanel";
 
 export function TrainerDashboard() {
   const { user, loading: authLoading } = useCurrentUser();
-  const { bookings, loading: bookingsLoading } = useBookings();
+  const [fix, setFix] = useState<{ lat: number; lng: number; label: string } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState("");
+  const { bookings, loading: bookingsLoading } = useBookings(
+    fix ? { lat: fix.lat, lng: fix.lng, radiusKm: DEFAULT_MATCH_RADIUS_KM } : null,
+  );
   const requests = bookings.filter((booking) => booking.status === "Requested");
   const accepted = bookings.filter((booking) => booking.status === "Confirmed");
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
@@ -57,6 +64,24 @@ export function TrainerDashboard() {
       await declineReschedule(id);
     } catch (error) {
       setAcceptError(error instanceof Error ? error.message : "Unable to keep current time.");
+    }
+  }
+
+  async function locateMe() {
+    setLocating(true);
+    setGeoError("");
+    try {
+      const current = await getCurrentLocation();
+      setFix({
+        lat: current.coordinates.latitude,
+        lng: current.coordinates.longitude,
+        label: current.label,
+      });
+    } catch (error) {
+      setFix(null);
+      setGeoError(getCurrentLocationErrorMessage(error));
+    } finally {
+      setLocating(false);
     }
   }
 
@@ -114,6 +139,20 @@ export function TrainerDashboard() {
           </p>
         </div>
 
+        <div className="flex flex-col gap-2 rounded-xl border border-forest-900/10 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="secondary" onClick={() => void locateMe()} disabled={locating}>
+              <CrosshairIcon size={17} /> {locating ? "Locating…" : fix ? "Refresh my location" : "Use my exact location"}
+            </Button>
+            {fix ? (
+              <p className="text-body-sm text-muted-600">📍 {fix.label} — showing requests within {DEFAULT_MATCH_RADIUS_KM} km, nearest first.</p>
+            ) : (
+              <p className="text-body-sm text-muted-600">Showing all requests. Capture your location to filter nearby ones.</p>
+            )}
+          </div>
+          {geoError ? <p className="text-body-sm text-error">{geoError}</p> : null}
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
             <p className="text-body-md text-forest-900">{requests.length}</p>
@@ -154,7 +193,9 @@ export function TrainerDashboard() {
               <p className="t-h4 text-charcoal-900">{bookings.length === 0 ? "No customer requests yet" : "No matching requests"}</p>
               <p className="pt-2 text-body-sm text-muted-600">
                 {bookings.length === 0
-                  ? "When a customer posts a trial request, it appears here automatically."
+                  ? fix
+                    ? `No requests within ${DEFAULT_MATCH_RADIUS_KM} km of you. New nearby requests appear here automatically.`
+                    : "When a customer posts a trial request, it appears here automatically."
                   : "Try a different service or status filter."}
               </p>
             </div>
@@ -170,6 +211,11 @@ export function TrainerDashboard() {
                     <p className="pt-0.5 inline-flex items-center gap-1.5 text-body-sm text-muted-600">
                       <LocationIcon size={15} className="shrink-0" /> {booking.location}
                     </p>
+                    {booking.distanceKm != null ? (
+                      <p className="pt-0.5 text-caption font-semibold text-forest-900">
+                        {formatKm(booking.distanceKm)}
+                      </p>
+                    ) : null}
                   </div>
                   <StatusBadge status={booking.status} />
                 </div>

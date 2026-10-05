@@ -26,6 +26,8 @@ export type BookingRequest = {
   reference: string;
   createdAt: string;
   location: string;
+  /** Exact-match distance for trainers; null when either side lacks a GPS fix. */
+  distanceKm: number | null;
   serviceSlug: string;
   serviceName: string;
   days: string[];
@@ -42,5 +44,9 @@ export type BookingRequest = {
 
 export type BookingInput = Omit<
   BookingRequest,
-  "id" | "reference" | "createdAt" | "status" | "trainerName" | "proposedDays" | "proposedTime" | "proposedSpecificTime" | "proposedBy" | "updatedAt"
->;
+  "id" | "reference" | "createdAt" | "status" | "trainerName" | "proposedDays" | "proposedTime" | "proposedSpecificTime" | "proposedBy" | "updatedAt" | "distanceKm"
+> & {
+  /** GPS fix captured at booking time; null when unavailable (legacy). */
+  lat?: number | null;
+  lng?: number | null;
+};
