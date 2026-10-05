@@ -294,3 +294,15 @@ export function updateBookingStatus(id: string, status: BookingStatus) {
   const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
   return row ? toPublicBooking(row) : null;
 }
+
+// Minimal booking facts for the payments layer (ownership + trainer + status).
+export function getBookingForPayment(id: string): {
+  id: string;
+  customerId: string;
+  trainerName: string | null;
+  status: BookingStatus;
+} | null {
+  const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
+  if (!row) return null;
+  return { id: row.id, customerId: row.customer_id, trainerName: row.trainer_name, status: row.status };
+}

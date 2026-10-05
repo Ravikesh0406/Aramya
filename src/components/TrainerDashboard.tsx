@@ -12,6 +12,7 @@ import {
 } from "@/lib/bookings";
 import { SERVICES } from "@/lib/data";
 import { useCurrentUser } from "@/lib/auth";
+import { EarningsPanel } from "@/components/EarningsPanel";
 
 export function TrainerDashboard() {
   const { user, loading: authLoading } = useCurrentUser();
@@ -128,6 +129,8 @@ export function TrainerDashboard() {
           </div>
         </div>
 
+        <EarningsPanel />
+
         <div className="grid gap-3 rounded-xl border border-forest-900/10 bg-white p-4 shadow-sm sm:grid-cols-[1fr_1fr]">
           <label className="flex flex-col gap-1.5">
             <span className="t-caption text-muted-600">Service</span>
@@ -165,7 +168,7 @@ export function TrainerDashboard() {
                   <div>
                     <h2 className="t-h4 text-charcoal-900">{booking.serviceName}</h2>
                     <p className="pt-0.5 inline-flex items-center gap-1.5 text-body-sm text-muted-600">
-                      <LocationIcon size={15} /> {booking.location}
+                      <LocationIcon size={15} className="shrink-0" /> {booking.location}
                     </p>
                   </div>
                   <StatusBadge status={booking.status} />
@@ -184,11 +187,11 @@ export function TrainerDashboard() {
 
                 <div className="flex flex-wrap items-center gap-4 text-body-sm text-charcoal-900">
                   <span className="inline-flex items-center gap-1.5">
-                    <CalendarIcon size={15} className="text-muted-600" />
+                    <CalendarIcon size={15} className="shrink-0 text-muted-600" />
                     Four sessions requested
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <ClockIcon size={15} className="text-muted-600" />
+                    <ClockIcon size={15} className="shrink-0 text-muted-600" />
                     {booking.status === "Reschedule Requested" && booking.proposedTime
                       ? booking.proposedTime === "Specific time" && booking.proposedSpecificTime
                         ? booking.proposedSpecificTime

@@ -14,6 +14,8 @@ import {
   type BookingStatus,
 } from "@/lib/bookings";
 import { useCurrentUser } from "@/lib/auth";
+import { PayButton } from "@/components/PayButton";
+import { TRIAL_PAISE } from "@/lib/payments/pricing";
 
 const NAV = [
   { label: "Home", href: "/", active: false },
@@ -388,6 +390,11 @@ export function SessionsDashboard() {
                     </span>
                     <span className="t-h2 text-forest-900">{TRIAL.price}</span>
                   </div>
+                  {(currentBooking.status === "Confirmed" || currentBooking.status === "Accepted") && (
+                    <div className="pt-4">
+                      <PayButton bookingId={currentBooking.id} amountPaise={TRIAL_PAISE} />
+                    </div>
+                  )}
                 </>
               ) : (
                 <div>
