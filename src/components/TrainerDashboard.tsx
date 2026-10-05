@@ -18,6 +18,7 @@ import { useCurrentUser } from "@/lib/auth";
 import { getCurrentLocation, getCurrentLocationErrorMessage } from "@/lib/geolocation";
 import { DEFAULT_MATCH_RADIUS_KM, formatKm } from "@/lib/geo";
 import { EarningsPanel } from "@/components/EarningsPanel";
+import { TrainerReviews } from "@/components/TrainerReviews";
 
 export function TrainerDashboard() {
   const { user, loading: authLoading } = useCurrentUser();
@@ -193,6 +194,8 @@ export function TrainerDashboard() {
         </div>
 
         <EarningsPanel />
+
+        <TrainerReviews />
 
         <div className="grid gap-3 rounded-xl border border-forest-900/10 bg-white p-4 shadow-sm sm:grid-cols-[1fr_1fr]">
           <label className="flex flex-col gap-1.5">

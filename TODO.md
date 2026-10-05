@@ -50,10 +50,10 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] UI: trainer start/complete/no-show buttons; customer confirm + Past sessions section
 - [x] Smoke test: full lifecycle + 401/403/409 guards all pass
 
-## R2 — Ratings & reviews
-- [ ] `reviews` table (one per completed booking), POST + average endpoints
-- [ ] Rate UI in customer dashboard; averages on trainer dashboard
-- [ ] Smoke test: review after completion only
+## R2 — Ratings & reviews ✅ DONE
+- [x] `reviews` table (one per completed booking), POST + average endpoints
+- [x] Rate UI in customer dashboard; averages on trainer dashboard
+- [x] Smoke test: pre-completion → 409, duplicate → 409, average 5.0/1 shown
 
 ## R3 — Org admin view
 - [ ] `ADMIN_CONTACTS` allowlist, `/admin` page (payout queue, refund queue, overview)

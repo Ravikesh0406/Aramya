@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Container, Overline, ButtonLink, StatusBadge, LoadingSkeleton } from "@/components/ui";
 import { SessionCard, PlanCard } from "@/components/cards";
@@ -17,6 +17,8 @@ import {
 } from "@/lib/bookings";
 import { useCurrentUser } from "@/lib/auth";
 import { PayButton } from "@/components/PayButton";
+import { RateBooking } from "@/components/RateBooking";
+import { getMyReviewedIds } from "@/lib/reviews";
 import { MONTHLY_PAISE, TRIAL_PAISE } from "@/lib/payments/pricing";
 
 const NAV = [
@@ -178,7 +180,18 @@ export function SessionsDashboard() {
   const { bookings, loading: bookingsLoading } = useBookings();
   const [rescheduleTarget, setRescheduleTarget] = useState<BookingRequest | null>(null);
   const [actionError, setActionError] = useState("");
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const currentBooking = bookings[bookings.length - 1];
+
+  useEffect(() => {
+    let cancelled = false;
+    getMyReviewedIds().then((ids) => {
+      if (!cancelled) setReviewedIds(ids);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookings.length]);
 
   async function runBookingAction(bookingId: string, action: "confirm" | "noshow") {
     try {
@@ -260,6 +273,10 @@ export function SessionsDashboard() {
 
   const accepted = bookings.filter((booking) => booking.status === "Confirmed");
   const bookingById = new Map(bookings.map((booking) => [booking.id, booking]));
+  const rateable = bookings.filter(
+    (booking) =>
+      booking.status === "Completed" && booking.trainerName && !reviewedIds.has(booking.id),
+  );
 
   return (
     <>
@@ -367,8 +384,7 @@ export function SessionsDashboard() {
 
               {pastSessions.length > 0 ? (
                 <div className="flex flex-col gap-4 pt-2">
-                  <h2 className="t-h3 text-charcoal-900">Past sessions</h2>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <h2 className="t-h3 text-charcoal-900">Past sessions</h2>                  <div className="grid gap-4 sm:grid-cols-2">
                     {pastSessions.map(({ key, ...sessionProps }) => (
                       <SessionCard
                         key={key}
@@ -382,6 +398,24 @@ export function SessionsDashboard() {
                       />
                     ))}
                   </div>
+                </div>
+              ) : null}
+              {rateable.length > 0 ? (
+                <div className="flex flex-col gap-4 pt-2">
+                  <h2 className="t-h3 text-charcoal-900">Rate your trainer</h2>
+                  {rateable.map((booking) => (
+                    <div key={booking.id} className="flex flex-col gap-3 rounded-xl border border-forest-900/10 bg-white p-5 shadow-sm">
+                      <p className="text-body-md text-charcoal-900">
+                        {booking.serviceName} <span className="text-body-sm text-muted-600">with {booking.trainerName} · {booking.reference}</span>
+                      </p>
+                      <RateBooking
+                        bookingId={booking.id}
+                        onRated={() => {
+                          void getMyReviewedIds().then(setReviewedIds);
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
               ) : null}
             </div>

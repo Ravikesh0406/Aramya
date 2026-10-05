@@ -233,6 +233,17 @@ const SCHEMA_STATEMENTS = [
     paid_at TEXT
   )`,
   `CREATE INDEX IF NOT EXISTS idx_payouts_trainer ON payouts(trainer_name)`,
+  `CREATE TABLE IF NOT EXISTS reviews (
+    id TEXT PRIMARY KEY,
+    booking_id TEXT UNIQUE NOT NULL,
+    customer_id TEXT NOT NULL,
+    trainer_name TEXT NOT NULL,
+    rating INTEGER NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_reviews_trainer ON reviews(trainer_name)`,
+  `CREATE INDEX IF NOT EXISTS idx_reviews_customer ON reviews(customer_id)`,
 ];
 
 async function ensureSchema(database: Db): Promise<void> {

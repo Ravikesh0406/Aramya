@@ -522,3 +522,70 @@ export async function autoCompleteStaleSessions(): Promise<number> {
     .run(new Date().toISOString(), new Date().toISOString(), cutoff);
   return Number(result.changes);
 }
+
+// --- Reviews (R2) --------------------------------------------------------------
+// One review per completed booking, customer → trainer.
+
+export type ReviewResult =
+  | { ok: true; review: { id: string; rating: number } }
+  | { ok: false; reason: "NOT_FOUND" | "FORBIDDEN" | "BAD_STATE" | "DUPLICATE"; detail: string };
+
+export async function createReview(
+  bookingId: string,
+  customerId: string,
+  rating: number,
+  note: string,
+): Promise<ReviewResult> {
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { ok: false, reason: "BAD_STATE", detail: "Rating must be 1–5." };
+  }
+  const database = await getDb();
+  const raw = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(bookingId);
+  if (!raw) return { ok: false, reason: "NOT_FOUND", detail: "Booking not found." };
+  const booking = asBookingRow(raw);
+  if (booking.customer_id !== customerId) {
+    return { ok: false, reason: "FORBIDDEN", detail: "Only the customer can review this booking." };
+  }
+  if (booking.status !== "Completed") {
+    return { ok: false, reason: "BAD_STATE", detail: "Only completed sessions can be reviewed." };
+  }
+  if (!booking.trainer_name) {
+    return { ok: false, reason: "BAD_STATE", detail: "No trainer on this booking." };
+  }
+  const existing = await database.prepare("SELECT id FROM reviews WHERE booking_id = ?").get(bookingId);
+  if (existing) {
+    return { ok: false, reason: "DUPLICATE", detail: "This booking is already reviewed." };
+  }
+  const id = randomId();
+  await database
+    .prepare("INSERT INTO reviews (id, booking_id, customer_id, trainer_name, rating, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(id, bookingId, customerId, booking.trainer_name, rating, note.slice(0, 500), new Date().toISOString());
+  return { ok: true, review: { id, rating } };
+}
+
+export async function listReviewsForTrainer(trainerName: string): Promise<
+  { id: string; rating: number; note: string; createdAt: string }[]
+> {
+  const database = await getDb();
+  const rows = await database
+    .prepare("SELECT id, rating, note, created_at FROM reviews WHERE trainer_name = ? ORDER BY created_at DESC LIMIT 20")
+    .all(trainerName) as { id: string; rating: number; note: string; created_at: string }[];
+  return rows.map((r) => ({ id: r.id, rating: r.rating, note: r.note, createdAt: r.created_at }));
+}
+
+export async function averageRatingForTrainer(trainerName: string): Promise<{ average: number | null; count: number }> {
+  const database = await getDb();
+  const row = await database
+    .prepare("SELECT AVG(rating) AS avg, COUNT(*) AS count FROM reviews WHERE trainer_name = ?")
+    .get(trainerName) as { avg: number | null; count: number } | undefined;
+  if (!row || Number(row.count) === 0) return { average: null, count: 0 };
+  return { average: Math.round(Number(row.avg) * 10) / 10, count: Number(row.count) };
+}
+
+export async function reviewedBookingIds(customerId: string): Promise<Set<string>> {
+  const database = await getDb();
+  const rows = await database
+    .prepare("SELECT booking_id FROM reviews WHERE customer_id = ?")
+    .all(customerId) as { booking_id: string }[];
+  return new Set(rows.map((r) => r.booking_id));
+}
