@@ -1,5 +1,6 @@
 import { cancelBooking, getBookingCustomerId } from "@/lib/server/store";
 import { getCurrentUser } from "@/lib/server/session";
+import { requestRefundForBooking } from "@/lib/server/payments";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (request.headers.get("X-Requested-With") !== "XMLHttpRequest") {
@@ -19,5 +20,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!booking) {
     return Response.json({ error: "Booking not found." }, { status: 404 });
   }
-  return Response.json({ booking });
+  // Paid booking → money must move too. Auto-attempts a live refund and
+  // records a manual fallback; never silent.
+  const refund = await requestRefundForBooking(id, user.id);
+  return Response.json({ booking, refund: refund.refunded ? refund : null });
 }

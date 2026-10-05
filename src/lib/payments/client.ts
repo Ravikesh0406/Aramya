@@ -64,9 +64,9 @@ export function verifyPayment(args: { orderId: string; razorpayPaymentId: string
   return api<{ payment: unknown; payout: unknown }>("/api/payments/verify", "POST", args);
 }
 
-export function getBookingPayments(bookingId: string) {
+export function getBookingPayments(bookingId: string, plan: "trial" | "monthly" = "trial") {
   return api<{ payments: unknown[]; paid: boolean; captured: unknown | null }>(
-    `/api/payments?bookingId=${encodeURIComponent(bookingId)}`,
+    `/api/payments?bookingId=${encodeURIComponent(bookingId)}&plan=${plan}`,
   );
 }
 

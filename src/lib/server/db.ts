@@ -210,7 +210,11 @@ const SCHEMA_STATEMENTS = [
     order_id TEXT UNIQUE NOT NULL,
     razorpay_payment_id TEXT,
     created_at TEXT NOT NULL,
-    captured_at TEXT
+    captured_at TEXT,
+    plan TEXT NOT NULL DEFAULT 'trial',
+    refund_reference TEXT,
+    refunded_at TEXT,
+    refund_note TEXT
   )`,
   `CREATE INDEX IF NOT EXISTS idx_payments_booking ON payments(booking_id)`,
   `CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id)`,
@@ -235,10 +239,17 @@ async function ensureSchema(database: Db): Promise<void> {
   }
   // Backfill-safe geo columns for DBs created before Phase 2.
   // (Fresh DBs get them inline above; PRAGMA works on both backends.)
-  const cols = (await database.prepare("PRAGMA table_info(bookings)").all()) as { name?: unknown }[];
-  const names = new Set(cols.map((c) => String(c.name)));
-  if (!names.has("lat")) await database.exec("ALTER TABLE bookings ADD COLUMN lat REAL");
-  if (!names.has("lng")) await database.exec("ALTER TABLE bookings ADD COLUMN lng REAL");
+  const bookingCols = (await database.prepare("PRAGMA table_info(bookings)").all()) as { name?: unknown }[];
+  const bookingNames = new Set(bookingCols.map((c) => String(c.name)));
+  if (!bookingNames.has("lat")) await database.exec("ALTER TABLE bookings ADD COLUMN lat REAL");
+  if (!bookingNames.has("lng")) await database.exec("ALTER TABLE bookings ADD COLUMN lng REAL");
+  // Phase 4: refund tracking on pre-existing payments tables.
+  const paymentCols = (await database.prepare("PRAGMA table_info(payments)").all()) as { name?: unknown }[];
+  const paymentNames = new Set(paymentCols.map((c) => String(c.name)));
+  if (!paymentNames.has("refund_reference")) await database.exec("ALTER TABLE payments ADD COLUMN refund_reference TEXT");
+  if (!paymentNames.has("refunded_at")) await database.exec("ALTER TABLE payments ADD COLUMN refunded_at TEXT");
+  if (!paymentNames.has("refund_note")) await database.exec("ALTER TABLE payments ADD COLUMN refund_note TEXT");
+  if (!paymentNames.has("plan")) await database.exec("ALTER TABLE payments ADD COLUMN plan TEXT NOT NULL DEFAULT 'trial'");
 }
 
 export async function getDb(): Promise<Db> {

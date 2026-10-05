@@ -29,12 +29,16 @@ async function main() {
     }
     const cols = Object.keys(rows[0]);
     const placeholders = cols.map(() => "?").join(", ");
+    const toInValue = (v: unknown): string | number | bigint | Uint8Array | null =>
+      v == null || typeof v === "string" || typeof v === "number" || typeof v === "bigint" || v instanceof Uint8Array
+        ? (v as string | number | bigint | Uint8Array | null)
+        : String(v);
     let copied = 0;
     // Small dev-scale datasets: sequential batches of 50.
     for (let i = 0; i < rows.length; i += 50) {
       const batch = rows.slice(i, i + 50).map((row) => ({
         sql: `INSERT OR IGNORE INTO ${table} (${cols.join(", ")}) VALUES (${placeholders})`,
-        args: cols.map((c) => row[c] ?? null),
+        args: cols.map((c) => toInValue(row[c])),
       }));
       await remote.batch(batch);
       copied += batch.length;

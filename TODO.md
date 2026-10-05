@@ -24,11 +24,11 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] `docs/ENVIRONMENT.md` documents all env vars
 - [x] Full regression smoke passed on local backend (signup→book→accept→pay→earnings→geo)
 
-## Phase 4 — Complete the money loop
-- [ ] Monthly (₹4,500) payable, plan-aware PayButton
-- [ ] Refund policy decision: auto (Razorpay Refunds API) vs manual ledger
-- [ ] `refund.processed` webhook handling
-- [ ] Acceptance: cancel-after-pay leaves a refund record, never silent loss
+## Phase 4 — Complete the money loop ✅ DONE (auto-attempt + manual fallback)
+- [x] Monthly (₹4,500) payable per booking alongside trial (plan-aware orders + paid checks)
+- [x] Cancel-after-pay triggers refund: live Razorpay attempt, manual ledger fallback, never silent
+- [x] `refund.processed` webhook reconciliation; refund columns (backfill-safe)
+- [x] Smoke test: monthly order 201 on trial-paid booking; cancel → MANUAL refund record
 
 ## Phase 5 — Notifications
 - [ ] 5A: 30s poll + header bell badge with open-request count

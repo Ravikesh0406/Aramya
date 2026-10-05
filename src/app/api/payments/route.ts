@@ -18,14 +18,16 @@ export async function GET(request: Request) {
     return Response.json({ error: "Sign in to view payments." }, { status: 401 });
   }
 
-  const bookingId = new URL(request.url).searchParams.get("bookingId");
+  const params = new URL(request.url).searchParams;
+  const bookingId = params.get("bookingId");
+  const plan = params.get("plan") === "monthly" ? "monthly" : "trial";
 
   if (user.role === "customer") {
     if (!bookingId) {
       return Response.json({ error: "bookingId is required." }, { status: 400 });
     }
     const payments = await listPaymentsForBooking(bookingId, user.id);
-    const captured = await findCapturedPaymentForBooking(bookingId);
+    const captured = await findCapturedPaymentForBooking(bookingId, plan);
     const mine = captured && payments.some((p) => p.id === captured.id) ? captured : null;
     return Response.json({ payments, paid: mine !== null, captured: mine });
   }

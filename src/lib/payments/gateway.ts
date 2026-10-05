@@ -35,6 +35,12 @@ export type PayoutAttempt = {
   note: string;
 };
 
+export type RefundAttempt = {
+  status: "REFUNDED" | "MANUAL";
+  reference: string | null;
+  note: string;
+};
+
 export interface PaymentGateway {
   readonly name: string;
   createOrder(input: OrderInput): Promise<CreatedOrder>;
@@ -44,6 +50,10 @@ export interface PaymentGateway {
     signature: string;
   }): boolean;
   verifyWebhookSignature(rawBody: string, signature: string | null): boolean;
+  refundPayment(args: {
+    razorpayPaymentId: string;
+    amountPaise: number;
+  }): Promise<RefundAttempt>;
   settleTrainerPayout(args: {
     amountPaise: number;
     trainerName: string;
@@ -120,6 +130,25 @@ class RazorpayGateway implements PaymentGateway {
     return a.length === b.length && timingSafeEqual(a, b);
   }
 
+  async refundPayment({ razorpayPaymentId, amountPaise }: { razorpayPaymentId: string; amountPaise: number }): Promise<RefundAttempt> {
+    const auth = Buffer.from(`${this.keyId}:${this.keySecret}`).toString("base64");
+    const res = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}/refund`, {
+      method: "POST",
+      headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: amountPaise, notes: { reason: "booking_cancelled" } }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { id?: string; error?: { description?: string } };
+    if (!res.ok || !data.id) {
+      // Fall through to manual settlement — never lose track of the money.
+      return {
+        status: "MANUAL",
+        reference: null,
+        note: `Auto-refund failed (${data.error?.description ?? res.status}) — refund ₹${amountPaise / 100} manually for ${razorpayPaymentId}.`,
+      };
+    }
+    return { status: "REFUNDED", reference: data.id, note: `Razorpay refund ${data.id}` };
+  }
+
   async settleTrainerPayout({ amountPaise, trainerName, reference }: { amountPaise: number; trainerName: string; reference: string }): Promise<PayoutAttempt> {
     // RazorpayX payouts need an approved account + fund account ids.
     // Attempt the API only when fully configured; otherwise stay PAYABLE
@@ -184,6 +213,14 @@ class MockGateway implements PaymentGateway {
       status: "PENDING",
       reference: null,
       note: `Mock mode — settle ₹${amountPaise / 100} to ${trainerName} manually (ref ${reference}).`,
+    };
+  }
+
+  async refundPayment({ razorpayPaymentId, amountPaise }: { razorpayPaymentId: string; amountPaise: number }): Promise<RefundAttempt> {
+    return {
+      status: "MANUAL",
+      reference: null,
+      note: `Mock mode — refund ₹${amountPaise / 100} manually for ${razorpayPaymentId}.`,
     };
   }
 }

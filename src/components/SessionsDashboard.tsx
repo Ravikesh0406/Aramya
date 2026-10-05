@@ -15,7 +15,7 @@ import {
 } from "@/lib/bookings";
 import { useCurrentUser } from "@/lib/auth";
 import { PayButton } from "@/components/PayButton";
-import { TRIAL_PAISE } from "@/lib/payments/pricing";
+import { MONTHLY_PAISE, TRIAL_PAISE } from "@/lib/payments/pricing";
 
 const NAV = [
   { label: "Home", href: "/", active: false },
@@ -414,11 +414,17 @@ export function SessionsDashboard() {
                 The {MONTHLY_PLAN.name} keeps your preferred schedule going at{" "}
                 {MONTHLY_PLAN.price} / {MONTHLY_PLAN.period}.
               </p>
-              <div className="pt-4">
-                <ButtonLink href="/plans" variant="secondary" className="w-full">
-                  View plans
-                </ButtonLink>
-              </div>
+              {currentBooking && (currentBooking.status === "Confirmed" || currentBooking.status === "Accepted") ? (
+                <div className="pt-4">
+                  <PayButton bookingId={currentBooking.id} amountPaise={MONTHLY_PAISE} plan="monthly" />
+                </div>
+              ) : (
+                <div className="pt-4">
+                  <ButtonLink href="/plans" variant="secondary" className="w-full">
+                    View plans
+                  </ButtonLink>
+                </div>
+              )}
             </div>
           </aside>
         </Container>

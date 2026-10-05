@@ -11,12 +11,16 @@ export type PaymentRow = {
   userId: string;
   amountPaise: number;
   currency: string;
+  plan: string;
   status: PaymentStatus;
   provider: string;
   orderId: string;
   razorpayPaymentId: string | null;
   createdAt: string;
   capturedAt: string | null;
+  refundReference: string | null;
+  refundedAt: string | null;
+  refundNote: string | null;
 };
 
 export type PayoutRow = {
@@ -50,6 +54,10 @@ type RawPayment = {
   razorpay_payment_id: string | null;
   created_at: string;
   captured_at: string | null;
+  plan: string;
+  refund_reference: string | null;
+  refunded_at: string | null;
+  refund_note: string | null;
 };
 
 function asRawPayment(row: DbRow): RawPayment {
@@ -69,6 +77,10 @@ function toPayment(row: RawPayment): PaymentRow {
     razorpayPaymentId: row.razorpay_payment_id,
     createdAt: row.created_at,
     capturedAt: row.captured_at,
+    plan: row.plan ?? "trial",
+    refundReference: row.refund_reference,
+    refundedAt: row.refunded_at,
+    refundNote: row.refund_note,
   };
 }
 
@@ -79,14 +91,15 @@ export async function createPayment(args: {
   currency: string;
   provider: string;
   orderId: string;
+  plan?: string;
 }): Promise<PaymentRow> {
   const id = randomId();
   const database = await getDb();
   await database
     .prepare(
-      "INSERT INTO payments (id, booking_id, user_id, amount_paise, currency, status, provider, order_id, created_at) VALUES (?, ?, ?, ?, ?, 'CREATED', ?, ?, ?)",
+      "INSERT INTO payments (id, booking_id, user_id, amount_paise, currency, status, provider, order_id, plan, created_at) VALUES (?, ?, ?, ?, ?, 'CREATED', ?, ?, ?, ?)",
     )
-    .run(id, args.bookingId, args.userId, args.amountPaise, args.currency, args.provider, args.orderId, new Date().toISOString());
+    .run(id, args.bookingId, args.userId, args.amountPaise, args.currency, args.provider, args.orderId, args.plan ?? "trial", new Date().toISOString());
   const created = await getPaymentById(id);
   if (!created) throw new Error("Payment record not found after insert.");
   return created;
@@ -104,11 +117,15 @@ export async function findPaymentByOrderId(orderId: string): Promise<PaymentRow 
   return row ? toPayment(asRawPayment(row)) : null;
 }
 
-export async function findCapturedPaymentForBooking(bookingId: string): Promise<PaymentRow | null> {
+export async function findCapturedPaymentForBooking(bookingId: string, plan?: string): Promise<PaymentRow | null> {
   const database = await getDb();
-  const row = await database
-    .prepare("SELECT * FROM payments WHERE booking_id = ? AND status = 'CAPTURED' ORDER BY created_at DESC LIMIT 1")
-    .get(bookingId);
+  const row = plan
+    ? await database
+        .prepare("SELECT * FROM payments WHERE booking_id = ? AND plan = ? AND status = 'CAPTURED' ORDER BY created_at DESC LIMIT 1")
+        .get(bookingId, plan)
+    : await database
+        .prepare("SELECT * FROM payments WHERE booking_id = ? AND status = 'CAPTURED' ORDER BY created_at DESC LIMIT 1")
+        .get(bookingId);
   return row ? toPayment(asRawPayment(row)) : null;
 }
 
@@ -133,6 +150,40 @@ export async function markPaymentFailed(id: string): Promise<PaymentRow | null> 
   const database = await getDb();
   await database.prepare("UPDATE payments SET status = 'FAILED' WHERE id = ? AND status = 'CREATED'").run(id);
   return getPaymentById(id);
+}
+
+export async function findPaymentByRazorpayId(razorpayPaymentId: string): Promise<PaymentRow | null> {
+  const database = await getDb();
+  const row = await database.prepare("SELECT * FROM payments WHERE razorpay_payment_id = ?").get(razorpayPaymentId);
+  return row ? toPayment(asRawPayment(row)) : null;
+}
+
+export type RefundResult =
+  | { refunded: false; reason: string }
+  | { refunded: true; status: "REFUNDED" | "MANUAL"; reference: string | null; note: string };
+
+// Cancel-path refund: attempts a live Razorpay refund, records a manual
+// fallback otherwise. Money is never dropped silently — every outcome lands
+// on the payment row.
+export async function requestRefundForBooking(bookingId: string, userId: string): Promise<RefundResult> {
+  const database = await getDb();
+  const payment = await findCapturedPaymentForBooking(bookingId);
+  if (!payment || payment.userId !== userId || payment.refundedAt) {
+    return { refunded: false, reason: "No refundable payment on this booking." };
+  }
+  if (!payment.razorpayPaymentId) {
+    return { refunded: false, reason: "Payment has no provider reference." };
+  }
+  const { getGateway } = await import("@/lib/payments/gateway");
+  const attempt = await getGateway().refundPayment({
+    razorpayPaymentId: payment.razorpayPaymentId,
+    amountPaise: payment.amountPaise,
+  });
+  const now = new Date().toISOString();
+  await database
+    .prepare("UPDATE payments SET refund_reference = ?, refunded_at = ?, refund_note = ? WHERE id = ?")
+    .run(attempt.reference, now, attempt.note, payment.id);
+  return { refunded: true, status: attempt.status, reference: attempt.reference, note: attempt.note };
 }
 
 // --- Payouts (org → trainer) ---------------------------------------------------

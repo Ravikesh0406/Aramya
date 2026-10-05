@@ -5,6 +5,7 @@
 import { getBookingForPayment } from "@/lib/server/store";
 import {
   findPaymentByOrderId,
+  findPaymentByRazorpayId,
   findPayoutForPayment,
   capturePayment,
   markPaymentFailed,
@@ -68,6 +69,13 @@ export async function POST(request: Request) {
     }
   } else if (event.event === "payment.failed" && payment.status === "CREATED") {
     await markPaymentFailed(payment.id);
+  } else if (event.event === "refund.processed" && entity.id) {
+    // Late confirmation for a refund the cancel path already recorded.
+    const byRazorpayId = await findPaymentByRazorpayId(entity.id);
+    if (byRazorpayId && !byRazorpayId.refundedAt) {
+      const { requestRefundForBooking } = await import("@/lib/server/payments");
+      await requestRefundForBooking(byRazorpayId.bookingId, byRazorpayId.userId);
+    }
   }
 
   return Response.json({ ok: true });

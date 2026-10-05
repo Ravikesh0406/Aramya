@@ -49,10 +49,6 @@ export async function POST(request: Request) {
       { status: 409 },
     );
   }
-  if (await findCapturedPaymentForBooking(bookingId)) {
-    return Response.json({ error: "This booking is already paid." }, { status: 409 });
-  }
-
   const orderLimit = checkRateLimit(`payorder:${user.id}`, 10, 60_000);
   if (!orderLimit.ok) {
     return Response.json(
@@ -63,6 +59,9 @@ export async function POST(request: Request) {
 
   const planKind: PlanKind = plan === "monthly" ? "monthly" : "trial";
   const amountPaise = planAmountPaise(planKind);
+  if (await findCapturedPaymentForBooking(bookingId, planKind)) {
+    return Response.json({ error: `This booking already has a paid ${planKind} plan.` }, { status: 409 });
+  }
 
   const gateway = getGateway();
   const order = await gateway.createOrder({
@@ -78,6 +77,7 @@ export async function POST(request: Request) {
     currency: order.currency || CURRENCY,
     provider: order.provider,
     orderId: order.orderId,
+    plan: planKind,
   });
 
   return Response.json(

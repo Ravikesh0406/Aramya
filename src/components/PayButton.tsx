@@ -8,7 +8,7 @@ import { getBookingPayments, payForBooking } from "@/lib/payments/client";
 import { formatINR } from "@/lib/payments/pricing";
 import { useCurrentUser } from "@/lib/auth";
 
-export function PayButton({ bookingId, amountPaise }: { bookingId: string; amountPaise: number }) {
+export function PayButton({ bookingId, amountPaise, plan = "trial" }: { bookingId: string; amountPaise: number; plan?: "trial" | "monthly" }) {
   const { user } = useCurrentUser();
   const [paid, setPaid] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -16,11 +16,11 @@ export function PayButton({ bookingId, amountPaise }: { bookingId: string; amoun
 
   useEffect(() => {
     let cancelled = false;
-    getBookingPayments(bookingId)
+    getBookingPayments(bookingId, plan)
       .then((data) => { if (!cancelled) setPaid(data.paid); })
       .catch(() => { if (!cancelled) setPaid(false); });
     return () => { cancelled = true; };
-  }, [bookingId]);
+  }, [bookingId, plan]);
 
   async function pay() {
     setBusy(true);
@@ -28,7 +28,7 @@ export function PayButton({ bookingId, amountPaise }: { bookingId: string; amoun
     try {
       await payForBooking({
         bookingId,
-        plan: "trial",
+        plan,
         customerName: user?.name,
         customerContact: user?.contact,
         onDone: () => {
