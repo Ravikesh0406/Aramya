@@ -113,5 +113,10 @@ export async function POST(request: Request) {
     specificTime: typeof input.specificTime === "string" ? input.specificTime : "",
   });
 
+  // Fire-and-forget trainer SMS (Phase 5B). Never blocks the response —
+  // notify() swallows its own errors and logs when unconfigured.
+  const { notifyTrainersOfBooking } = await import("@/lib/server/notify");
+  void notifyTrainersOfBooking(booking);
+
   return Response.json({ booking }, { status: 201 });
 }

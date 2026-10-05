@@ -30,9 +30,10 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] `refund.processed` webhook reconciliation; refund columns (backfill-safe)
 - [x] Smoke test: monthly order 201 on trial-paid booking; cancel → MANUAL refund record
 
-## Phase 5 — Notifications ✅ 5A DONE, 5B pending vendor
+## Phase 5 — Notifications ✅ DONE (5A live, 5B env-gated)
 - [x] 5A: `TrainerBell` in header (open-request count, 30s poll) + trainer dashboard auto-refresh
-- [ ] 5B: SMS on nearby request (vendor account required)
+- [x] 5B: `notifyTrainersOfBooking` via MSG91 (fire-and-forget, logged-skip without keys; needs `MSG91_AUTH_KEY` + `MSG91_TEMPLATE_ID` to send)
+- [x] Smoke test: booking creation succeeds with notifier wired
 
 ## Phase 6 — Safety rails ✅ DONE
 - [x] Rate-limit login/signup (10/min/IP), bookings + pay-order (per-user)
