@@ -17,10 +17,11 @@ export async function POST(
   }
 
   const { id } = await params;
-  const booking = await acceptBookingWithTrainer(id, user.name);
-  if (!booking) {
-    return Response.json({ error: "Booking not found." }, { status: 404 });
+  const result = await acceptBookingWithTrainer(id, user.name);
+  if (!result.ok) {
+    const status = result.reason === "NOT_FOUND" ? 404 : 409;
+    return Response.json({ error: result.detail, reason: result.reason }, { status });
   }
 
-  return Response.json({ booking });
+  return Response.json({ booking: result.booking });
 }

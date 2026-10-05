@@ -230,13 +230,95 @@ export function createBookingForCustomer(customerId: string, input: BookingInput
   );
 }
 
-export function acceptBookingWithTrainer(id: string, trainerName: string) {
-  const updatedAt = new Date().toISOString();
-  db()
-    .prepare("UPDATE bookings SET status = 'Confirmed', trainer_name = ?, updated_at = ? WHERE id = ?")
-    .run(trainerName, updatedAt, id);
+export type AcceptResult =
+  | { ok: true; booking: BookingRequest }
+  | { ok: false; reason: "NOT_FOUND" | "NOT_REQUESTED" | "OVERLAP"; detail: string };
+
+// Bookings in these states occupy the trainer's schedule.
+const OCCUPIED_STATUSES: BookingStatus[] = [
+  "Requested",
+  "Accepted",
+  "Confirmed",
+  "Upcoming",
+  "In Progress",
+  "Rescheduled",
+  "Reschedule Requested",
+];
+
+function timesClash(
+  a: { time: string; specificTime: string | null },
+  b: { time: string; specificTime: string | null },
+): boolean {
+  if (a.time !== b.time) return false;
+  if (a.time !== "Specific time") return true;
+  // Unknown exact time clashes conservatively.
+  const x = (a.specificTime ?? "").trim();
+  const y = (b.specificTime ?? "").trim();
+  return !x || !y || x === y;
+}
+
+// First shared day on which the trainer already has an occupying booking,
+// or null when the slot is free. excludeId lets a booking ignore itself.
+export function trainerScheduleClash(
+  trainerName: string,
+  days: string[],
+  time: string,
+  specificTime: string,
+  excludeId?: string,
+): string | null {
+  const rows = db()
+    .prepare("SELECT id, days, time, specific_time, status FROM bookings WHERE trainer_name = ?")
+    .all(trainerName) as {
+    id: string;
+    days: string;
+    time: string;
+    specific_time: string | null;
+    status: BookingStatus;
+  }[];
+  for (const row of rows) {
+    if (row.id === excludeId || !OCCUPIED_STATUSES.includes(row.status)) continue;
+    const otherDays = parseJsonArray(row.days) ?? [];
+    const shared = days.find((day) => otherDays.includes(day));
+    if (shared && timesClash({ time, specificTime }, { time: row.time, specificTime: row.specific_time })) {
+      return shared;
+    }
+  }
+  return null;
+}
+
+export function acceptBookingWithTrainer(id: string, trainerName: string): AcceptResult {
   const row = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow | undefined;
-  return row ? toPublicBooking(row) : null;
+  if (!row) {
+    return { ok: false, reason: "NOT_FOUND", detail: "Booking not found." };
+  }
+  if (row.status !== "Requested") {
+    const holder = row.trainer_name ? ` by ${row.trainer_name}` : "";
+    return {
+      ok: false,
+      reason: "NOT_REQUESTED",
+      detail: `Booking is already ${row.status.toLowerCase()}${holder} — only open requests can be accepted.`,
+    };
+  }
+  const days = parseJsonArray(row.days) ?? [];
+  const clashDay = trainerScheduleClash(trainerName, days, row.time, row.specific_time, id);
+  if (clashDay) {
+    const when = row.time === "Specific time" && row.specific_time ? row.specific_time : row.time;
+    return {
+      ok: false,
+      reason: "OVERLAP",
+      detail: `You already have a booking on ${clashDay} (${when}).`,
+    };
+  }
+  // Atomic transition — a concurrent accept wins instead of overwriting.
+  const updatedAt = new Date().toISOString();
+  const result = db()
+    .prepare("UPDATE bookings SET status = 'Confirmed', trainer_name = ?, updated_at = ? WHERE id = ? AND status = 'Requested'")
+    .run(trainerName, updatedAt, id) as { changes: number | bigint };
+  if (Number(result.changes) === 0) {
+    return { ok: false, reason: "NOT_REQUESTED", detail: "Just taken by another trainer — please refresh." };
+  }
+  const updated = db().prepare("SELECT * FROM bookings WHERE id = ?").get(id) as BookingRow;
+  return { ok: true, booking: toPublicBooking(updated) };
 }
 
 export function getBookingCustomerId(id: string) {
