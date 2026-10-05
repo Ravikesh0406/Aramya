@@ -40,11 +40,13 @@ export type BookingRequest = {
   proposedSpecificTime: string | null;
   proposedBy: string | null;
   updatedAt: string;
+  completedAt: string | null;
+  customerConfirmed: boolean;
 };
 
 export type BookingInput = Omit<
   BookingRequest,
-  "id" | "reference" | "createdAt" | "status" | "trainerName" | "proposedDays" | "proposedTime" | "proposedSpecificTime" | "proposedBy" | "updatedAt" | "distanceKm"
+  "id" | "reference" | "createdAt" | "status" | "trainerName" | "proposedDays" | "proposedTime" | "proposedSpecificTime" | "proposedBy" | "updatedAt" | "distanceKm" | "completedAt" | "customerConfirmed"
 > & {
   /** GPS fix captured at booking time; null when unavailable (legacy). */
   lat?: number | null;

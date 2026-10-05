@@ -30,6 +30,8 @@ type BookingRow = {
   proposed_time: string | null;
   proposed_specific_time: string | null;
   proposed_by: string | null;
+  completed_at: string | null;
+  customer_confirmed: number | null;
 };
 
 export type CreateUserInput = {
@@ -84,6 +86,8 @@ function toPublicBooking(row: BookingRow, distanceKm: number | null = null): Boo
     proposedSpecificTime: row.proposed_specific_time,
     proposedBy: row.proposed_by,
     updatedAt: row.updated_at,
+    completedAt: row.completed_at ?? null,
+    customerConfirmed: Number(row.customer_confirmed ?? 0) === 1,
   };
 }
 
@@ -392,4 +396,129 @@ export async function getBookingForPayment(id: string): Promise<{
   if (!raw) return null;
   const row = asBookingRow(raw);
   return { id: row.id, customerId: row.customer_id, trainerName: row.trainer_name, status: row.status };
+}
+
+// --- Session lifecycle (R1) ---------------------------------------------------
+// Trainer drives Confirmed → In Progress → Completed; either party can flag
+// No Show; the customer optionally confirms a Completed booking (feeds R2
+// reviews). Stale In Progress bookings auto-complete lazily (see below).
+
+export type LifecycleResult =
+  | { ok: true; booking: BookingRequest }
+  | { ok: false; reason: "NOT_FOUND" | "FORBIDDEN" | "BAD_STATE"; detail: string };
+
+async function transitionBooking(
+  id: string,
+  from: BookingStatus[],
+  set: string,
+  args: unknown[],
+): Promise<BookingRow | "NOT_FOUND" | "BAD_STATE"> {
+  const database = await getDb();
+  const raw = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  if (!raw) return "NOT_FOUND";
+  const row = asBookingRow(raw);
+  if (!from.includes(row.status)) return "BAD_STATE";
+  const result = await database
+    .prepare(`UPDATE bookings SET ${set}, updated_at = ? WHERE id = ?`)
+    .run(...args, new Date().toISOString(), id);
+  if (Number(result.changes) === 0) return "BAD_STATE";
+  const updated = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return asBookingRow(updated as Record<string, unknown>);
+}
+
+function lifecycleOk(booking: BookingRow): LifecycleResult {
+  return { ok: true, booking: toPublicBooking(booking) };
+}
+
+export async function startSession(id: string, trainerName: string): Promise<LifecycleResult> {
+  const database = await getDb();
+  const raw = await database.prepare("SELECT trainer_name FROM bookings WHERE id = ?").get(id);
+  if (!raw) return { ok: false, reason: "NOT_FOUND", detail: "Booking not found." };
+  if ((raw as { trainer_name: string | null }).trainer_name !== trainerName) {
+    return { ok: false, reason: "FORBIDDEN", detail: "Only the accepted trainer can start this session." };
+  }
+  const result = await transitionBooking(id, ["Confirmed", "Rescheduled", "Upcoming"], "status = 'In Progress'", []);
+  if (result === "NOT_FOUND") return { ok: false, reason: "NOT_FOUND", detail: "Booking not found." };
+  if (result === "BAD_STATE") {
+    return { ok: false, reason: "BAD_STATE", detail: "Only confirmed bookings can be started." };
+  }
+  return lifecycleOk(result);
+}
+
+export async function completeSession(id: string, trainerName: string): Promise<LifecycleResult> {
+  const database = await getDb();
+  const raw = await database.prepare("SELECT trainer_name FROM bookings WHERE id = ?").get(id);
+  if (!raw) return { ok: false, reason: "NOT_FOUND", detail: "Booking not found." };
+  if ((raw as { trainer_name: string | null }).trainer_name !== trainerName) {
+    return { ok: false, reason: "FORBIDDEN", detail: "Only the accepted trainer can complete this session." };
+  }
+  const now = new Date().toISOString();
+  const fetched = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  const row = asBookingRow(fetched as Record<string, unknown>);
+  if (row.status !== "In Progress") {
+    return { ok: false, reason: "BAD_STATE", detail: "Only sessions in progress can be completed." };
+  }
+  const result = await database
+    .prepare("UPDATE bookings SET status = 'Completed', completed_at = ?, updated_at = ? WHERE id = ? AND status = 'In Progress'")
+    .run(now, now, id);
+  if (Number(result.changes) === 0) {
+    return { ok: false, reason: "BAD_STATE", detail: "Session is no longer in progress." };
+  }
+  const updated = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return lifecycleOk(asBookingRow(updated as Record<string, unknown>));
+}
+
+export async function markNoShow(
+  id: string,
+  party: { role: UserRole; userId: string; name: string },
+): Promise<LifecycleResult> {
+  const database = await getDb();
+  const raw = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  if (!raw) return { ok: false, reason: "NOT_FOUND", detail: "Booking not found." };
+  const row = asBookingRow(raw);
+  const involved =
+    party.role === "customer"
+      ? row.customer_id === party.userId
+      : row.trainer_name === party.name;
+  if (!involved) {
+    return { ok: false, reason: "FORBIDDEN", detail: "Only the customer or accepted trainer can flag this." };
+  }
+  if (!["Confirmed", "In Progress", "Upcoming", "Accepted", "Rescheduled"].includes(row.status)) {
+    return { ok: false, reason: "BAD_STATE", detail: `A ${row.status.toLowerCase()} booking cannot be marked no-show.` };
+  }
+  const result = await database
+    .prepare("UPDATE bookings SET status = 'No Show', updated_at = ? WHERE id = ?")
+    .run(new Date().toISOString(), id);
+  void result;
+  const updated = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return lifecycleOk(asBookingRow(updated as Record<string, unknown>));
+}
+
+export async function confirmCompletion(id: string, customerId: string): Promise<LifecycleResult> {
+  const database = await getDb();
+  const raw = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  if (!raw) return { ok: false, reason: "NOT_FOUND", detail: "Booking not found." };
+  const row = asBookingRow(raw);
+  if (row.customer_id !== customerId) {
+    return { ok: false, reason: "FORBIDDEN", detail: "Only the customer can confirm completion." };
+  }
+  if (row.status !== "Completed") {
+    return { ok: false, reason: "BAD_STATE", detail: "Only completed sessions can be confirmed." };
+  }
+  await database
+    .prepare("UPDATE bookings SET customer_confirmed = 1, updated_at = ? WHERE id = ?")
+    .run(new Date().toISOString(), id);
+  const updated = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
+  return lifecycleOk(asBookingRow(updated as Record<string, unknown>));
+}
+
+// Lazy auto-complete: In Progress bookings untouched for 24h+ are done —
+// the trainer just never tapped "complete". Runs on bookings reads.
+export async function autoCompleteStaleSessions(): Promise<number> {
+  const database = await getDb();
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const result = await database
+    .prepare("UPDATE bookings SET status = 'Completed', completed_at = ?, updated_at = ? WHERE status = 'In Progress' AND updated_at < ?")
+    .run(new Date().toISOString(), new Date().toISOString(), cutoff);
+  return Number(result.changes);
 }

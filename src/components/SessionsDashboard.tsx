@@ -10,6 +10,8 @@ import {
   useBookings,
   cancelBooking,
   requestReschedule,
+  confirmCompletion,
+  markNoShow,
   type BookingRequest,
   type BookingStatus,
 } from "@/lib/bookings";
@@ -175,7 +177,18 @@ export function SessionsDashboard() {
   const { user, loading: authLoading } = useCurrentUser();
   const { bookings, loading: bookingsLoading } = useBookings();
   const [rescheduleTarget, setRescheduleTarget] = useState<BookingRequest | null>(null);
+  const [actionError, setActionError] = useState("");
   const currentBooking = bookings[bookings.length - 1];
+
+  async function runBookingAction(bookingId: string, action: "confirm" | "noshow") {
+    try {
+      setActionError("");
+      if (action === "confirm") await confirmCompletion(bookingId);
+      else await markNoShow(bookingId);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Action failed.");
+    }
+  }
 
   if (authLoading || bookingsLoading) {
     return (
@@ -234,14 +247,19 @@ export function SessionsDashboard() {
           : null;
       }),
     )
-    .filter((session): session is SessionItem => session !== null)
-    .filter((session) =>
-      ["Requested", "Accepted", "Confirmed", "Upcoming", "In Progress", "Rescheduled", "Reschedule Requested"].includes(
-        session.status,
-      ),
-    );
+    .filter((session): session is SessionItem => session !== null);
+
+  const upcomingSessions = sessions.filter((session) =>
+    ["Requested", "Accepted", "Confirmed", "Upcoming", "In Progress", "Rescheduled", "Reschedule Requested"].includes(
+      session.status,
+    ),
+  );
+  const pastSessions = sessions.filter((session) =>
+    ["Completed", "No Show", "Cancelled"].includes(session.status),
+  );
 
   const accepted = bookings.filter((booking) => booking.status === "Confirmed");
+  const bookingById = new Map(bookings.map((booking) => [booking.id, booking]));
 
   return (
     <>
@@ -287,7 +305,7 @@ export function SessionsDashboard() {
           <div className="flex flex-col gap-8">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {[
-                { value: String(sessions.length), label: "Requested days" },
+                { value: String(upcomingSessions.length), label: "Requested days" },
                 { value: String(accepted.length), label: "Confirmed bookings" },
                 { value: TRIAL.price, label: "Trial price" },
                 { value: "24h+", label: "Advance booking" },
@@ -308,13 +326,15 @@ export function SessionsDashboard() {
                   {accepted.length > 0 ? "Upcoming sessions" : "Requested trial days"}
                 </h2>
                 <span className="rounded-pill bg-forest-900/8 px-3 py-1 text-caption font-semibold text-forest-900">
-                  {sessions.length}
+                  {upcomingSessions.length}
                 </span>
               </div>
 
-              {sessions.length > 0 ? (
+              {actionError ? <p className="text-body-sm text-error">{actionError}</p> : null}
+
+              {upcomingSessions.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {sessions.map(({ key, ...sessionProps }) => (
+                  {upcomingSessions.map(({ key, ...sessionProps }) => (
                     <SessionCard
                       key={key}
                       {...sessionProps}
@@ -324,6 +344,12 @@ export function SessionsDashboard() {
                           bookings.find((booking) => booking.id === sessionProps.bookingId) ?? null,
                         )
                       }
+                      showConfirm={
+                        sessionProps.status === "Completed" &&
+                        bookingById.get(sessionProps.bookingId)?.customerConfirmed === false
+                      }
+                      onConfirmCompletion={() => void runBookingAction(sessionProps.bookingId, "confirm")}
+                      onMarkNoShow={() => void runBookingAction(sessionProps.bookingId, "noshow")}
                     />
                   ))}
                 </div>
@@ -338,6 +364,26 @@ export function SessionsDashboard() {
                   </div>
                 </div>
               )}
+
+              {pastSessions.length > 0 ? (
+                <div className="flex flex-col gap-4 pt-2">
+                  <h2 className="t-h3 text-charcoal-900">Past sessions</h2>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {pastSessions.map(({ key, ...sessionProps }) => (
+                      <SessionCard
+                        key={key}
+                        {...sessionProps}
+                        showConfirm={
+                          sessionProps.status === "Completed" &&
+                          bookingById.get(sessionProps.bookingId)?.customerConfirmed === false
+                        }
+                        onConfirmCompletion={() => void runBookingAction(sessionProps.bookingId, "confirm")}
+                        onMarkNoShow={() => void runBookingAction(sessionProps.bookingId, "noshow")}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-xl border border-forest-900/10 bg-white p-6 shadow-sm">

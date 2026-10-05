@@ -9,6 +9,9 @@ import {
   acceptBooking,
   acceptReschedule,
   declineReschedule,
+  startSession,
+  completeSession,
+  markNoShow,
 } from "@/lib/bookings";
 import { SERVICES } from "@/lib/data";
 import { useCurrentUser } from "@/lib/auth";
@@ -27,6 +30,7 @@ export function TrainerDashboard() {
   const requests = bookings.filter((booking) => booking.status === "Requested");
   const accepted = bookings.filter((booking) => booking.status === "Confirmed");
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
   const [acceptError, setAcceptError] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -72,6 +76,20 @@ export function TrainerDashboard() {
       await declineReschedule(id);
     } catch (error) {
       setAcceptError(error instanceof Error ? error.message : "Unable to keep current time.");
+    }
+  }
+
+  async function runLifecycle(id: string, action: "start" | "complete" | "noshow", fallback: string) {
+    try {
+      setActingId(id);
+      setAcceptError("");
+      if (action === "start") await startSession(id);
+      else if (action === "complete") await completeSession(id);
+      else await markNoShow(id);
+    } catch (error) {
+      setAcceptError(error instanceof Error ? error.message : fallback);
+    } finally {
+      setActingId(null);
     }
   }
 
@@ -280,6 +298,37 @@ export function TrainerDashboard() {
                     Accepted by {booking.trainerName ?? "you"}
                   </p>
                 ) : null}
+
+                {(booking.status === "Confirmed" || booking.status === "Rescheduled") && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void runLifecycle(booking.id, "start", "Unable to start session.")}
+                    disabled={actingId === booking.id}
+                  >
+                    {actingId === booking.id ? "Starting…" : "Start session"}
+                  </Button>
+                )}
+
+                {booking.status === "In Progress" && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => void runLifecycle(booking.id, "complete", "Unable to complete session.")}
+                      disabled={actingId === booking.id}
+                    >
+                      {actingId === booking.id ? "Completing…" : "Mark completed"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => void runLifecycle(booking.id, "noshow", "Unable to flag no-show.")}
+                      disabled={actingId === booking.id}
+                    >
+                      Customer no-show
+                    </Button>
+                  </div>
+                )}
               </article>
             ))
           )}

@@ -1,4 +1,4 @@
-import { createBookingForCustomer, listVisibleBookings } from "@/lib/server/store";
+import { createBookingForCustomer, listVisibleBookings, autoCompleteStaleSessions } from "@/lib/server/store";
 import { getCurrentUser } from "@/lib/server/session";
 import { checkRateLimit } from "@/lib/server/rate-limit";
 import { SERVICES } from "@/lib/data";
@@ -28,6 +28,8 @@ export async function GET(request: Request) {
       ? { lat, lng, radiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : DEFAULT_MATCH_RADIUS_KM }
       : undefined;
   const bookings = await listVisibleBookings(user, near);
+  // Lazy cron: stale In Progress sessions resolve on read.
+  await autoCompleteStaleSessions();
   return Response.json({ bookings });
 }
 

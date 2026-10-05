@@ -50,6 +50,22 @@ export async function acceptBooking(id: string) {
   return requestBooking(`/api/bookings/${id}/accept`, "POST");
 }
 
+export async function startSession(id: string) {
+  return requestBooking(`/api/bookings/${id}/start`, "POST");
+}
+
+export async function completeSession(id: string) {
+  return requestBooking(`/api/bookings/${id}/complete`, "POST");
+}
+
+export async function markNoShow(id: string) {
+  return requestBooking(`/api/bookings/${id}/noshow`, "POST");
+}
+
+export async function confirmCompletion(id: string) {
+  return requestBooking(`/api/bookings/${id}/confirm`, "POST");
+}
+
 export async function cancelBooking(id: string) {
   return requestBooking(`/api/bookings/${id}/cancel`, "POST");
 }

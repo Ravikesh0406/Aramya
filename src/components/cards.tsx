@@ -218,6 +218,9 @@ export function SessionCard({
   reference,
   onCancel,
   onReschedule,
+  onConfirmCompletion,
+  onMarkNoShow,
+  showConfirm,
 }: {
   service: string;
   trainer: string;
@@ -228,6 +231,9 @@ export function SessionCard({
   reference?: string;
   onCancel?: () => void;
   onReschedule?: () => void;
+  onConfirmCompletion?: () => void;
+  onMarkNoShow?: () => void;
+  showConfirm?: boolean;
 }) {
   return (
     <article className="flex h-full flex-col gap-4 rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
@@ -252,6 +258,15 @@ export function SessionCard({
         </span>
       </div>
       <div className="mt-auto flex flex-wrap gap-2">
+        {showConfirm && status === "Completed" && onConfirmCompletion ? (
+          <button
+            type="button"
+            onClick={onConfirmCompletion}
+            className="rounded-[10px] bg-forest-900 px-4 py-2 text-body-sm font-semibold text-white transition duration-200 ease-out hover:bg-forest-800"
+          >
+            Confirm completion
+          </button>
+        ) : null}
         {status === "Requested" || status === "Confirmed" || status === "Accepted" || status === "Upcoming" || status === "Rescheduled" || status === "Reschedule Requested" ? (
           <>
             <button
@@ -270,6 +285,15 @@ export function SessionCard({
             >
               Cancel
             </button>
+            {onMarkNoShow ? (
+              <button
+                type="button"
+                onClick={onMarkNoShow}
+                className="rounded-[10px] px-4 py-2 text-body-sm font-semibold text-muted-600 transition duration-200 ease-out hover:text-error"
+              >
+                Trainer no-show
+              </button>
+            ) : null}
           </>
         ) : null}
       </div>

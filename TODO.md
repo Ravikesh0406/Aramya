@@ -1,4 +1,7 @@
-# ARAMYA — Fix Tracker (7 phases)
+# ARAMYA — Fix Tracker (7 phases + round 2)
+
+Round 1 rollout order: 1 → 2 → 6 → 3 → 4 → 5A → 7 → 5B. ✅ ALL DONE (see below)
+Round 2 order: R1 → R2 → R3 → R4 → R5 → R6 → R9 → R7 → R8 → R10.
 
 Rollout order: 1 → 2 → 6 → 3 → 4 → 5A → 7 → 5B.
 After each phase: `npm run build` + curl smoke test (signup → book → accept → pay → earnings).
@@ -34,6 +37,52 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] 5A: `TrainerBell` in header (open-request count, 30s poll) + trainer dashboard auto-refresh
 - [x] 5B: `notifyTrainersOfBooking` via MSG91 (fire-and-forget, logged-skip without keys; needs `MSG91_AUTH_KEY` + `MSG91_TEMPLATE_ID` to send)
 - [x] Smoke test: booking creation succeeds with notifier wired
+
+---
+
+# ROUND 2
+
+## R1 — Session lifecycle ✅ DONE
+- [x] Columns: `completed_at`, `customer_confirmed` (ALTER-guarded)
+- [x] Transitions: start (Confirmed→In Progress), complete (In Progress→Completed), no-show (either party), customer confirm
+- [x] Lazy auto-complete: In Progress + untouched 24h → Completed (on bookings reads)
+- [x] Routes: `start`, `complete`, `noshow`, `confirm` (ownership-checked)
+- [x] UI: trainer start/complete/no-show buttons; customer confirm + Past sessions section
+- [x] Smoke test: full lifecycle + 401/403/409 guards all pass
+
+## R2 — Ratings & reviews
+- [ ] `reviews` table (one per completed booking), POST + average endpoints
+- [ ] Rate UI in customer dashboard; averages on trainer dashboard
+- [ ] Smoke test: review after completion only
+
+## R3 — Org admin view
+- [ ] `ADMIN_CONTACTS` allowlist, `/admin` page (payout queue, refund queue, overview)
+- [ ] `POST /api/payments/payouts/:id/settle` (admin, manual reference)
+- [ ] Header admin link (fetch-gated)
+
+## R4 — Trainer verification
+- [ ] `users.verified` flag; gate *accepting* on VERIFIED
+- [ ] Admin flip endpoint; smoke test unverified blocked
+
+## R5 — Trainer home base
+- [ ] `users.home_lat/home_lng`; save from trainer dashboard
+- [ ] Feed defaults to home base when no live fix passed
+
+## R6 — Cancellation window
+- [ ] Free cancel >24h before first session; inside-window → manual org decision
+- [ ] Copy update
+
+## R9 — Payout race hardening
+- [ ] find-then-insert → catch UNIQUE → fetch existing (verify + webhook)
+
+## R7 — Automated tests
+- [ ] vitest harness; unit tests for pricing, geo, rate-limit
+
+## R8 — Password reset
+- [ ] Single-use token flow; SMS delivery when configured, logged in dev
+
+## R10 — Share/PWA touches
+- [ ] `opengraph-image.tsx`, `manifest.ts`, theme-color
 
 ## Phase 6 — Safety rails ✅ DONE
 - [x] Rate-limit login/signup (10/min/IP), bookings + pay-order (per-user)

@@ -195,7 +195,9 @@ const SCHEMA_STATEMENTS = [
     proposed_days TEXT,
     proposed_time TEXT,
     proposed_specific_time TEXT,
-    proposed_by TEXT
+    proposed_by TEXT,
+    completed_at TEXT,
+    customer_confirmed INTEGER NOT NULL DEFAULT 0
   )`,
   `CREATE INDEX IF NOT EXISTS idx_bookings_customer ON bookings(customer_id)`,
   `CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)`,
@@ -243,6 +245,8 @@ async function ensureSchema(database: Db): Promise<void> {
   const bookingNames = new Set(bookingCols.map((c) => String(c.name)));
   if (!bookingNames.has("lat")) await database.exec("ALTER TABLE bookings ADD COLUMN lat REAL");
   if (!bookingNames.has("lng")) await database.exec("ALTER TABLE bookings ADD COLUMN lng REAL");
+  if (!bookingNames.has("completed_at")) await database.exec("ALTER TABLE bookings ADD COLUMN completed_at TEXT");
+  if (!bookingNames.has("customer_confirmed")) await database.exec("ALTER TABLE bookings ADD COLUMN customer_confirmed INTEGER NOT NULL DEFAULT 0");
   // Phase 4: refund tracking on pre-existing payments tables.
   const paymentCols = (await database.prepare("PRAGMA table_info(payments)").all()) as { name?: unknown }[];
   const paymentNames = new Set(paymentCols.map((c) => String(c.name)));
