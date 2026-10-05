@@ -32,10 +32,11 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [ ] 5A: 30s poll + header bell badge with open-request count
 - [ ] 5B: SMS on nearby request (vendor account required)
 
-## Phase 6 — Safety rails
-- [ ] Rate-limit login/signup/order (in-memory now, KV on deploy)
-- [ ] Enforce min-8 password server-side
-- [ ] Audit X-Requested-With coverage on mutation reads
+## Phase 6 — Safety rails ✅ DONE
+- [x] Rate-limit login/signup (10/min/IP), bookings + pay-order (per-user)
+- [x] Min-8 password enforced server-side (verified present in signup route)
+- [x] X-Requested-With coverage audited — all POST routes have it
+- [x] Smoke test: 12 rapid signups → 10×201 then 429s with Retry-After
 
 ## Phase 7 — UX/SEO polish
 - [ ] Dashboard skeletons, empty states

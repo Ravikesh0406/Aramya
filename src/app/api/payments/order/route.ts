@@ -2,6 +2,7 @@
 // User pays the ORG here; the trainer share is recorded at capture time.
 import { getCurrentUser } from "@/lib/server/session";
 import { getBookingForPayment } from "@/lib/server/store";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 import {
   createPayment,
   findCapturedPaymentForBooking,
@@ -50,6 +51,14 @@ export async function POST(request: Request) {
   }
   if (findCapturedPaymentForBooking(bookingId)) {
     return Response.json({ error: "This booking is already paid." }, { status: 409 });
+  }
+
+  const orderLimit = checkRateLimit(`payorder:${user.id}`, 10, 60_000);
+  if (!orderLimit.ok) {
+    return Response.json(
+      { error: `Too many requests — try again in ${orderLimit.retryAfterSec}s.` },
+      { status: 429, headers: { "Retry-After": String(orderLimit.retryAfterSec) } },
+    );
   }
 
   const planKind: PlanKind = plan === "monthly" ? "monthly" : "trial";

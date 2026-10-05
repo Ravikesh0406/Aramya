@@ -1,5 +1,6 @@
 import { createBookingForCustomer, listVisibleBookings } from "@/lib/server/store";
 import { getCurrentUser } from "@/lib/server/session";
+import { checkRateLimit } from "@/lib/server/rate-limit";
 import { SERVICES } from "@/lib/data";
 import { nextDateForDay } from "@/lib/dates";
 import { DEFAULT_MATCH_RADIUS_KM } from "@/lib/geo";
@@ -38,6 +39,14 @@ export async function POST(request: Request) {
   const user = await getCurrentUser(request);
   if (!user) {
     return Response.json({ error: "Sign in before booking." }, { status: 401 });
+  }
+
+  const bookingLimit = checkRateLimit(`bookings:${user.id}`, 20, 60_000);
+  if (!bookingLimit.ok) {
+    return Response.json(
+      { error: `Too many requests — try again in ${bookingLimit.retryAfterSec}s.` },
+      { status: 429, headers: { "Retry-After": String(bookingLimit.retryAfterSec) } },
+    );
   }
 
   let body: unknown;

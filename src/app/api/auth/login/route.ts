@@ -1,11 +1,15 @@
 import { createSession, findUserByContactRole } from "@/lib/server/store";
 import { setSessionCookie } from "@/lib/server/session";
 import { verifyPassword } from "@/lib/server/password";
+import { rateLimited } from "@/lib/server/rate-limit";
 
 export async function POST(request: Request) {
   if (request.headers.get("X-Requested-With") !== "XMLHttpRequest") {
     return Response.json({ error: "Cross-site request rejected." }, { status: 403 });
   }
+
+  const limited = rateLimited(request, "login", 10, 60_000);
+  if (limited) return limited;
 
   let body: unknown;
   try {
