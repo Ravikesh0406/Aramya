@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Container, Overline, ButtonLink, StatusBadge } from "@/components/ui";
 import { Button } from "@/components/ui";
 import { CalendarIcon, ClockIcon, LocationIcon, CrosshairIcon } from "@/components/Icons";
@@ -30,6 +30,14 @@ export function TrainerDashboard() {
   const [acceptError, setAcceptError] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
+
+  // New customer requests appear without a manual refresh.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      window.dispatchEvent(new Event("aramya:bookingsChanged"));
+    }, 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const filteredBookings = bookings.filter(
     (booking) =>

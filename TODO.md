@@ -30,8 +30,8 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] `refund.processed` webhook reconciliation; refund columns (backfill-safe)
 - [x] Smoke test: monthly order 201 on trial-paid booking; cancel → MANUAL refund record
 
-## Phase 5 — Notifications
-- [ ] 5A: 30s poll + header bell badge with open-request count
+## Phase 5 — Notifications ✅ 5A DONE, 5B pending vendor
+- [x] 5A: `TrainerBell` in header (open-request count, 30s poll) + trainer dashboard auto-refresh
 - [ ] 5B: SMS on nearby request (vendor account required)
 
 ## Phase 6 — Safety rails ✅ DONE

@@ -22,6 +22,7 @@ import {
   getCurrentLocationErrorMessage,
 } from "@/lib/geolocation";
 import { clearCurrentUser, useCurrentUser } from "@/lib/auth";
+import { TrainerBell } from "@/components/TrainerBell";
 
 const SUGGESTION_TO_SLUG: Record<string, string> = {
   Yoga: "yoga",
@@ -229,6 +230,7 @@ export function Header() {
                 Sign out
               </button>
             ) : null}
+            <TrainerBell />
             <ButtonLink href="/book" size="sm" className="hidden sm:inline-flex">
               Book a Trial
             </ButtonLink>
