@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Container, Overline, ButtonLink, StatusBadge } from "@/components/ui";
+import { Container, Overline, ButtonLink, StatusBadge, LoadingSkeleton } from "@/components/ui";
 import { SessionCard, PlanCard } from "@/components/cards";
 import { MONTHLY_PLAN, TRIAL, DAYS, TIME_OPTIONS } from "@/lib/data";
 import { CalendarIcon, ClockIcon, CheckIcon } from "@/components/Icons";
@@ -180,9 +180,7 @@ export function SessionsDashboard() {
   if (authLoading || bookingsLoading) {
     return (
       <Container className="py-20">
-        <p className="rounded-xl border border-forest-900/10 bg-white p-6 text-body text-muted-600 shadow-sm">
-          Loading your dashboard...
-        </p>
+        <LoadingSkeleton lines={4} />
       </Container>
     );
   }

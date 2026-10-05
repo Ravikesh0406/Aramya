@@ -213,6 +213,21 @@ export function StatusBadge({ status }: { status: string }) {
   );
 }
 
+/* ------------------------------------------------------- Loading skeleton */
+
+export function LoadingSkeleton({ lines = 3 }: { lines?: number }) {
+  return (
+    <div aria-busy="true" aria-label="Loading" className="flex flex-col gap-3">
+      {Array.from({ length: lines }).map((_, i) => (
+        <div
+          key={i}
+          className="h-16 animate-pulse rounded-xl border border-forest-900/8 bg-forest-900/5"
+        />
+      ))}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------- Panel */
 
 export function Card({

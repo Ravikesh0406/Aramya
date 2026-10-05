@@ -40,6 +40,7 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] X-Requested-With coverage audited — all POST routes have it
 - [x] Smoke test: 12 rapid signups → 10×201 then 429s with Retry-After
 
-## Phase 7 — UX/SEO polish
-- [ ] Dashboard skeletons, empty states
-- [ ] `sitemap.ts` + `robots.ts`, OG images
+## Phase 7 — UX/SEO polish ✅ DONE
+- [x] `LoadingSkeleton` in both dashboards (aria-busy, pulse)
+- [x] `sitemap.xml` + `robots.txt` routes (services included)
+- [x] Layout metadata already had OG/keywords/robots — left as-is

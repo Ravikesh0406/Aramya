@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Container, Overline, ButtonLink, StatusBadge } from "@/components/ui";
+import { Container, Overline, ButtonLink, StatusBadge, LoadingSkeleton } from "@/components/ui";
 import { Button } from "@/components/ui";
 import { CalendarIcon, ClockIcon, LocationIcon, CrosshairIcon } from "@/components/Icons";
 import {
@@ -97,9 +97,7 @@ export function TrainerDashboard() {
     return (
       <section className="py-14 md:py-20">
         <Container>
-          <p className="rounded-xl border border-forest-900/10 bg-white p-6 text-body text-muted-600 shadow-sm">
-            Loading trainer dashboard...
-          </p>
+          <LoadingSkeleton lines={4} />
         </Container>
       </section>
     );
