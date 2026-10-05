@@ -9,12 +9,13 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] Route maps failures to 404 / 409 with clear messages (who took it, clash day)
 - [x] Smoke test: double-accept → 409; same-trainer same-slot → 409
 
-## Phase 2 — Real geo-matching
-- [ ] `ALTER TABLE bookings ADD COLUMN lat/lng` (existence-checked, backfill-safe)
-- [ ] BookingFlow keeps GPS coords, POST persists them
-- [ ] Trainer feed filtered by distance, nearest first; NULL-coord fallback
-- [ ] Trainer location capture on trainer dashboard
-- [ ] Smoke test: far trainer doesn't see request; near trainer sees it first
+## Phase 2 — Real geo-matching ✅ DONE
+- [x] `ALTER TABLE bookings ADD COLUMN lat/lng` (existence-checked, backfill-safe)
+- [x] BookingFlow keeps GPS coords, POST persists them
+- [x] Trainer feed filtered by distance, nearest first; NULL-coord fallback
+- [x] Trainer location capture on trainer dashboard (+ `distanceKm` display)
+- [x] Smoke test: near sees first at 0 km, far doesn't see it, no-GPS sees all
+- [x] Fixed: absent query params no longer filter around (0,0) (`Number(null)===0` trap)
 
 ## Phase 3 — Portable database (before any public link)
 - [ ] Decision: Turso vs Postgres (default: Turso)
