@@ -91,7 +91,7 @@ export default function ForTrainersPage() {
       </section>
 
       {/* Trainer workspace */}
-      <section className="py-14 md:py-20">
+      <section className="py-10 md:py-14">
         <Container className="grid items-start gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <SectionHeading
             overline="Your workspace"
@@ -141,7 +141,7 @@ export default function ForTrainersPage() {
       </section>
 
       {/* Benefits */}
-      <section className="bg-sand-100/60 py-14 md:py-20">
+      <section className="bg-sand-100/60 py-10 md:py-14">
         <Container className="flex flex-col gap-10">
           <SectionHeading
             overline="Why trainers stay"
@@ -168,7 +168,7 @@ export default function ForTrainersPage() {
       </section>
 
       {/* Steps */}
-      <section className="py-14 md:py-20">
+      <section className="py-10 md:py-14">
         <Container className="flex flex-col gap-10">
           <SectionHeading overline="Getting started" title="Four steps to your first session" />
           <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

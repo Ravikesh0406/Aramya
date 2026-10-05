@@ -26,7 +26,7 @@ export function ServiceCard({ service }: { service: Service }) {
         View details
         <ArrowRightIcon
           size={16}
-          className="transition duration-200 ease-out group-hover:translate-x-1"
+          className="shrink-0 transition duration-200 ease-out group-hover:translate-x-1"
         />
       </span>
     </Link>
@@ -45,7 +45,7 @@ export function TrialCard({ className = "" }: { className?: string }) {
           <p className="t-overline text-terracotta-500">Start here</p>
           <h3 className="t-h3 pt-1 text-charcoal-900">{TRIAL.name}</h3>
         </div>
-        <span className="rounded-pill bg-forest-900 px-3 py-1 text-caption font-semibold text-white">
+        <span className="shrink-0 rounded-pill bg-forest-900 px-3 py-1 text-caption font-semibold text-white">
           Early access
         </span>
       </div>
@@ -114,7 +114,7 @@ export function PlanCard({
           </div>
         </div>
         <span
-          className={`rounded-pill px-3 py-1 text-caption font-semibold ${
+          className={`shrink-0 rounded-pill px-3 py-1 text-caption font-semibold ${
             dark ? "bg-ivory-50/15 text-ivory-50" : "bg-forest-900/8 text-forest-900"
           }`}
         >
@@ -187,8 +187,8 @@ export function TrainerCard({
             {experience} · {area}
           </p>
         </div>
-        <span className="ml-auto inline-flex items-center gap-1 text-body-sm font-semibold text-charcoal-900">
-          <StarIcon size={15} className="text-terracotta-500" />
+        <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-body-sm font-semibold text-charcoal-900">
+          <StarIcon size={15} className="shrink-0 text-terracotta-500" />
           {rating.toFixed(1)}
         </span>
       </div>
@@ -243,11 +243,11 @@ export function SessionCard({
       </div>
       <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-forest-900/8 pt-4 text-body-sm text-charcoal-900">
         <span className="inline-flex items-center gap-2">
-          <CalendarIcon size={16} className="text-muted-600" />
+          <CalendarIcon size={16} className="shrink-0 text-muted-600" />
           {day}, {date}
         </span>
         <span className="inline-flex items-center gap-2">
-          <ClockIcon size={16} className="text-muted-600" />
+          <ClockIcon size={16} className="shrink-0 text-muted-600" />
           {time}
         </span>
       </div>

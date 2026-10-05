@@ -32,7 +32,7 @@ function Hero() {
         className="pointer-events-none absolute -left-24 top-40 h-72 w-72 rounded-full bg-forest-900/5 blur-3xl"
       />
 
-      <Container className="relative grid items-center gap-12 pb-16 pt-12 md:pb-24 md:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+      <Container className="relative grid items-center gap-10 pb-12 pt-10 md:pb-16 md:pt-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
         {/* Copy */}
         <div className="flex flex-col gap-6">
           <Overline>Managed at-home training</Overline>
@@ -79,7 +79,7 @@ function Hero() {
 
         {/* Visual */}
         <div className="relative">
-          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-gradient-to-br from-forest-950 via-forest-900 to-forest-800 shadow-lg sm:aspect-[5/4] lg:aspect-[4/5]">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-gradient-to-br from-forest-950 via-forest-900 to-forest-800 shadow-lg sm:aspect-[5/4] lg:aspect-[4/5]">
             {/* abstract movement lines */}
             <svg
               aria-hidden
@@ -117,7 +117,7 @@ function Hero() {
             {/* floating confirmed-session card */}
             <div className="absolute bottom-4 left-4 right-4 rounded-lg bg-white p-4 shadow-lg">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-pill bg-success/10 text-success">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-success/10 text-success">
                   <CheckIcon size={16} strokeWidth={2.4} />
                 </span>
                 <div className="min-w-0">
@@ -131,7 +131,7 @@ function Hero() {
                     Service matched to your schedule
                   </p>
                 </div>
-                <span className="ml-auto inline-flex items-center gap-1.5 whitespace-nowrap text-caption font-semibold text-charcoal-900">
+                <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-caption font-semibold text-charcoal-900">
                   <CalendarIcon size={14} className="text-muted-600" />
                   24h+ ahead
                 </span>
@@ -140,7 +140,7 @@ function Hero() {
           </div>
 
           {/* price chip */}
-          <div className="absolute -left-3 top-6 hidden rounded-lg border border-forest-900/10 bg-white px-4 py-3 shadow-md sm:block">
+          <div className="absolute left-3 top-6 hidden rounded-lg border border-forest-900/10 bg-white px-4 py-3 shadow-md sm:block">
             <p className="t-caption text-muted-600">4-Session Trial</p>
             <p className="text-body-md text-forest-900">
               {TRIAL.price}{" "}
@@ -159,7 +159,7 @@ function Hero() {
 
 function ServicesSection() {
   return (
-    <section className="py-16 md:py-24" id="services">
+    <section className="py-12 md:py-16" id="services">
       <Container className="flex flex-col gap-10">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <SectionHeading
@@ -186,7 +186,7 @@ function ServicesSection() {
 
 function TrialSection() {
   return (
-    <section className="bg-sand-100/60 py-16 md:py-24">
+    <section className="bg-sand-100/60 py-12 md:py-16">
       <Container className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
         <div className="flex flex-col gap-6">
           <SectionHeading
@@ -200,7 +200,7 @@ function TrialSection() {
             description="Four private at-home sessions to find your rhythm, meet your trainer and see how at-home training fits your week."
           />
 
-          <div className="flex items-baseline gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span className="t-display text-forest-900">{TRIAL.price}</span>
             <span className="t-body-lg text-muted-600 line-through">{TRIAL.regularPrice}</span>
             <span className="rounded-pill bg-forest-900 px-3 py-1 text-caption font-semibold text-white">
@@ -247,7 +247,7 @@ function TrialSection() {
 
 function HowItWorksSection() {
   return (
-    <section className="py-16 md:py-24">
+    <section className="py-12 md:py-16">
       <Container className="flex flex-col gap-12">
         <SectionHeading
           overline="How ARAMYA works"
@@ -346,7 +346,7 @@ function WhyAtHomeSection() {
 
 function TrustSection() {
   return (
-    <section className="py-16 md:py-24">
+    <section className="py-12 md:py-16">
       <Container className="grid items-start gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
         <SectionHeading
           overline="Trainer trust"
@@ -393,7 +393,7 @@ function TrustSection() {
 
 function PlanSection() {
   return (
-    <section className="bg-sand-100/60 py-16 md:py-24" id="plans">
+    <section className="bg-sand-100/60 py-12 md:py-16" id="plans">
       <Container className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
         <div className="flex flex-col gap-6">
           <SectionHeading
@@ -453,7 +453,7 @@ function PlanSection() {
 
 function CtaSection() {
   return (
-    <section className="py-16 md:py-24">
+    <section className="py-12 md:py-16">
       <Container>
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-forest-900 to-forest-950 px-6 py-14 text-center text-ivory-50 shadow-lg md:px-12 md:py-20">
           <svg

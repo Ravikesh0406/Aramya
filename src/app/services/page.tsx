@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function ServicesPage() {
   return (
     <>
-      <section className="border-b border-forest-900/10 bg-ivory-50 py-14 md:py-20">
+      <section className="border-b border-forest-900/10 bg-ivory-50 py-10 md:py-14">
         <Container className="flex flex-col gap-5">
           <Overline>Active services</Overline>
           <h1 className="t-display max-w-3xl text-charcoal-900">
@@ -27,7 +27,7 @@ export default function ServicesPage() {
         </Container>
       </section>
 
-      <section className="py-14 md:py-20">
+      <section className="py-10 md:py-14">
         <Container className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {SERVICES.map((service) => (
             <ServiceCard key={service.slug} service={service} />
@@ -35,7 +35,7 @@ export default function ServicesPage() {
         </Container>
       </section>
 
-      <section className="bg-sand-100/60 py-14 md:py-20">
+      <section className="bg-sand-100/60 py-10 md:py-14">
         <Container className="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
           <div className="flex flex-col gap-6">
             <SectionHeading

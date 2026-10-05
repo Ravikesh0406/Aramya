@@ -50,7 +50,7 @@ export default function HowItWorksPage() {
   return (
     <>
       {/* Hero */}
-      <section className="border-b border-forest-900/10 bg-ivory-50 py-14 md:py-20">
+      <section className="border-b border-forest-900/10 bg-ivory-50 py-10 md:py-14">
         <Container className="flex flex-col gap-5">
           <Overline>How ARAMYA works</Overline>
           <h1 className="t-display max-w-3xl text-charcoal-900">
@@ -65,7 +65,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Four steps */}
-      <section className="py-14 md:py-20">
+      <section className="py-10 md:py-14">
         <Container className="flex flex-col gap-10">
           <SectionHeading
             overline="Four steps"
@@ -90,7 +90,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Booking flow timeline */}
-      <section className="bg-sand-100/60 py-14 md:py-20">
+      <section className="bg-sand-100/60 py-10 md:py-14">
         <Container className="flex flex-col gap-10">
           <SectionHeading
             overline="Booking flow"
@@ -126,7 +126,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Rules */}
-      <section className="py-14 md:py-20">
+      <section className="py-10 md:py-14">
         <Container className="flex flex-col gap-10">
           <SectionHeading
             overline="Scheduling rules"
@@ -185,7 +185,7 @@ export default function HowItWorksPage() {
       </section>
 
       {/* Session statuses */}
-      <section className="py-14 md:py-20">
+      <section className="py-10 md:py-14">
         <Container className="flex flex-col gap-8">
           <SectionHeading
             overline="Session statuses"

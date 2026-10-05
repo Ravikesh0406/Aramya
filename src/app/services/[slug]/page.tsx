@@ -36,7 +36,7 @@ export default async function ServiceDetailPage(
   return (
     <>
       {/* Hero */}
-      <section className="border-b border-forest-900/10 bg-ivory-50 py-14 md:py-20">
+      <section className="border-b border-forest-900/10 bg-ivory-50 py-10 md:py-14">
         <Container className="flex flex-col gap-6">
           <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-body-sm text-muted-600">
             <Link href="/services" className="transition hover:text-forest-900">
@@ -71,7 +71,7 @@ export default async function ServiceDetailPage(
       </section>
 
       {/* Description + included */}
-      <section className="py-14 md:py-20" id="included">
+      <section className="py-10 md:py-14" id="included">
         <Container className="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
           <div className="flex flex-col gap-6">
             <SectionHeading
@@ -121,7 +121,7 @@ export default async function ServiceDetailPage(
       </section>
 
       {/* How it works strip */}
-      <section className="bg-sand-100/60 py-14 md:py-20">
+      <section className="bg-sand-100/60 py-10 md:py-14">
         <Container className="flex flex-col gap-8">
           <SectionHeading
             overline="The same simple flow"
@@ -150,7 +150,7 @@ export default async function ServiceDetailPage(
       </section>
 
       {/* Other services */}
-      <section className="py-14 md:py-20">
+      <section className="py-10 md:py-14">
         <Container className="flex flex-col gap-8">
           <SectionHeading overline="Explore more" title="Other active services" />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

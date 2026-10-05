@@ -22,7 +22,7 @@ const PROMISES = [
 export default function BookPage() {
   return (
     <>
-      <section className="border-b border-forest-900/10 bg-ivory-50 py-12 md:py-16">
+      <section className="border-b border-forest-900/10 bg-ivory-50 py-8 md:py-12">
         <Container className="flex flex-col gap-4">
           <Overline>Book a Trial</Overline>
           <h1 className="t-h1 max-w-3xl text-charcoal-900">
@@ -35,7 +35,7 @@ export default function BookPage() {
         </Container>
       </section>
 
-      <section className="py-12 md:py-16">
+      <section className="py-8 md:py-12">
         <Container className="grid items-start gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:gap-10">
           <Suspense fallback={<p className="text-body text-muted-600">Loading booking...</p>}>
             <BookingFlow />

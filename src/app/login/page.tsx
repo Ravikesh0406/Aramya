@@ -18,7 +18,7 @@ const HIGHLIGHTS = [
 
 export default function LoginPage() {
   return (
-    <section className="py-14 md:py-20">
+    <section className="py-10 md:py-14">
       <Container className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
         {/* Brand panel */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-forest-950 via-forest-900 to-forest-800 p-8 text-ivory-50 md:p-12">

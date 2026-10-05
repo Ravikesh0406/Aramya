@@ -206,7 +206,7 @@ export function StatusBadge({ status }: { status: string }) {
   const tone = STATUS_TONES[status] ?? "border-forest-900/20 bg-forest-900/8 text-forest-900";
   return (
     <span
-      className={`inline-flex items-center rounded-pill border px-3 py-1 text-caption font-semibold whitespace-nowrap ${tone}`}
+      className={`inline-flex shrink-0 items-center rounded-pill border px-3 py-1 text-caption font-semibold whitespace-nowrap ${tone}`}
     >
       {status}
     </span>

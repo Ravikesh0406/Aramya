@@ -37,7 +37,7 @@ const FOOTER_COLUMNS = [
 export function Footer() {
   return (
     <footer className="bg-forest-950 text-ivory-50">
-      <Container className="py-16 md:py-24">
+      <Container className="py-12 md:py-16">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="flex flex-col gap-5">
             <Logo tone="ivory" />
