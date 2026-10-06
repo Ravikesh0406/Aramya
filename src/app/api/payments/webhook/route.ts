@@ -6,10 +6,9 @@ import { getBookingForPayment } from "@/lib/server/store";
 import {
   findPaymentByOrderId,
   findPaymentByRazorpayId,
-  findPayoutForPayment,
   capturePayment,
   markPaymentFailed,
-  createTrainerPayout,
+  getOrCreateTrainerPayout,
 } from "@/lib/server/payments";
 import { getGateway } from "@/lib/payments/gateway";
 import { splitPayment } from "@/lib/payments/pricing";
@@ -57,16 +56,14 @@ export async function POST(request: Request) {
 
   if (event.event === "payment.captured" && payment.status === "CREATED") {
     await capturePayment(payment.id, entity.id ?? payment.razorpayPaymentId ?? "webhook");
-    if (!await findPayoutForPayment(payment.id)) {
-      const booking = await getBookingForPayment(payment.bookingId);
-      const { trainerPaise } = splitPayment(payment.amountPaise);
-      await createTrainerPayout({
-        paymentId: payment.id,
-        bookingId: payment.bookingId,
-        trainerName: booking?.trainerName ?? "Unassigned trainer",
-        amountPaise: trainerPaise,
-      });
-    }
+    const booking = await getBookingForPayment(payment.bookingId);
+    const { trainerPaise } = splitPayment(payment.amountPaise);
+    await getOrCreateTrainerPayout({
+      paymentId: payment.id,
+      bookingId: payment.bookingId,
+      trainerName: booking?.trainerName ?? "Unassigned trainer",
+      amountPaise: trainerPaise,
+    });
   } else if (event.event === "payment.failed" && payment.status === "CREATED") {
     await markPaymentFailed(payment.id);
   } else if (event.event === "refund.processed" && entity.id) {

@@ -257,6 +257,25 @@ export async function findPayoutForPayment(paymentId: string): Promise<PayoutRow
   return row ? toPayout(asRawPayout(row)) : null;
 }
 
+// Race-safe: two concurrent captures for the same payment resolve to one
+// payout row (payment_id is UNIQUE) instead of 500ing on constraint clash.
+export async function getOrCreateTrainerPayout(args: {
+  paymentId: string;
+  bookingId: string;
+  trainerName: string;
+  amountPaise: number;
+}): Promise<PayoutRow> {
+  const existing = await findPayoutForPayment(args.paymentId);
+  if (existing) return existing;
+  try {
+    return await createTrainerPayout(args);
+  } catch {
+    const raced = await findPayoutForPayment(args.paymentId);
+    if (raced) return raced;
+    throw new Error("Unable to record trainer payout.");
+  }
+}
+
 export async function markPayoutPaid(id: string, reference: string | null, note: string | null): Promise<PayoutRow | null> {
   const database = await getDb();
   await database

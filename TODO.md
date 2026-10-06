@@ -76,8 +76,9 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] Day-granularity boundary (deterministic, no ms coin flips); UI copy per booking
 - [x] Smoke test: free + MANUAL refund, inside-window + 24h MANUAL note
 
-## R9 — Payout race hardening
-- [ ] find-then-insert → catch UNIQUE → fetch existing (verify + webhook)
+## R9 — Payout race hardening ✅ DONE
+- [x] find-then-insert → `getOrCreateTrainerPayout` (catch UNIQUE → fetch existing) in verify + webhook
+- [x] Smoke test: double-verify returns CAPTURED twice, single payout row
 
 ## R7 — Automated tests
 - [ ] vitest harness; unit tests for pricing, geo, rate-limit

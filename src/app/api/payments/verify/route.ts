@@ -7,7 +7,7 @@ import {
   findPaymentByOrderId,
   findPayoutForPayment,
   capturePayment,
-  createTrainerPayout,
+  getOrCreateTrainerPayout,
   markPayoutPaid,
   setPayoutNote,
 } from "@/lib/server/payments";
@@ -71,17 +71,17 @@ export async function POST(request: Request) {
   }
 
   // Org → trainer: record the trainer's share for later settlement.
-  let payout = await findPayoutForPayment(payment.id);
-  if (!payout) {
-    const booking = await getBookingForPayment(payment.bookingId);
-    const trainerName = booking?.trainerName ?? "Unassigned trainer";
-    const { trainerPaise } = splitPayment(payment.amountPaise);
-    payout = await createTrainerPayout({
-      paymentId: payment.id,
-      bookingId: payment.bookingId,
-      trainerName,
-      amountPaise: trainerPaise,
-    });
+  // getOrCreate is race-safe: concurrent verifies resolve to one row.
+  const booking = await getBookingForPayment(payment.bookingId);
+  const trainerName = booking?.trainerName ?? "Unassigned trainer";
+  const { trainerPaise } = splitPayment(payment.amountPaise);
+  let payout = await getOrCreateTrainerPayout({
+    paymentId: payment.id,
+    bookingId: payment.bookingId,
+    trainerName,
+    amountPaise: trainerPaise,
+  });
+  if (payout.status === "PAYABLE") {
     // Attempt instant settlement when RazorpayX is configured; otherwise
     // the row stays PAYABLE for manual settlement by the org.
     try {
