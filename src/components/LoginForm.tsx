@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import { PhoneIcon, UserIcon } from "@/components/Icons";
@@ -214,6 +215,14 @@ export function LoginForm() {
         >
           {mode === "signin" ? "Need an account?" : "Already have an account?"}
         </button>
+        <Link
+          href="/forgot-password"
+          className="text-body-sm font-semibold text-muted-600 transition duration-200 ease-out hover:text-forest-900"
+        >
+          Forgot password?
+        </Link>
+      </div>
+      <div className="flex items-center justify-between pt-1">
         <button
           type="button"
           onClick={() => router.push(role === "trainer" ? "/for-trainers" : "/book")}

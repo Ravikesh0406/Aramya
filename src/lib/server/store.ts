@@ -626,3 +626,60 @@ export async function reviewedBookingIds(customerId: string): Promise<Set<string
     .all(customerId) as { booking_id: string }[];
   return new Set(rows.map((r) => r.booking_id));
 }
+
+// --- Password reset (R8) -------------------------------------------------------
+// Single-use, 15-minute tokens. The plain token is returned once for delivery
+// (SMS when configured, server log in dev) — only its sha256 is stored.
+
+export async function createPasswordResetToken(userId: string): Promise<{ token: string; expiresAt: string }> {
+  const { randomBytes, createHash } = await import("crypto");
+  // Short user-typable code (8 hex chars); only its sha256 is stored.
+  const token = randomBytes(4).toString("hex").toUpperCase();
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  const database = await getDb();
+  await database
+    .prepare("INSERT INTO reset_tokens (id, user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)")
+    .run(randomId(), userId, tokenHash, expiresAt, now);
+  return { token, expiresAt };
+}
+
+export type ResetResult =
+  | { ok: true }
+  | { ok: false; reason: string };
+
+export async function consumePasswordResetToken(
+  contact: string,
+  role: UserRole,
+  token: string,
+  newPasswordHash: string,
+): Promise<ResetResult> {
+  const { createHash } = await import("crypto");
+  const tokenHash = createHash("sha256").update(token.trim().toUpperCase()).digest("hex");
+  const database = await getDb();
+  const row = await database
+    .prepare(
+      `SELECT t.id, t.user_id, t.expires_at, t.used_at, u.contact, u.role
+       FROM reset_tokens t JOIN users u ON u.id = t.user_id
+       WHERE t.token_hash = ?`,
+    )
+    .get(tokenHash) as {
+    id: string;
+    user_id: string;
+    expires_at: string;
+    used_at: string | null;
+    contact: string;
+    role: UserRole;
+  } | undefined;
+  if (!row) return { ok: false, reason: "Invalid or expired reset code." };
+  if (row.used_at) return { ok: false, reason: "This reset code was already used." };
+  if (row.expires_at < new Date().toISOString()) return { ok: false, reason: "Reset code expired — request a new one." };
+  if (row.contact !== contact.trim() || row.role !== role) {
+    return { ok: false, reason: "Reset code does not match this account." };
+  }
+  const now = new Date().toISOString();
+  await database.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(newPasswordHash, row.user_id);
+  await database.prepare("UPDATE reset_tokens SET used_at = ? WHERE id = ?").run(now, row.id);
+  return { ok: true };
+}

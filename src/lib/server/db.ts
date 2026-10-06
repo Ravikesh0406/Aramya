@@ -247,6 +247,15 @@ const SCHEMA_STATEMENTS = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_reviews_trainer ON reviews(trainer_name)`,
   `CREATE INDEX IF NOT EXISTS idx_reviews_customer ON reviews(customer_id)`,
+  `CREATE TABLE IF NOT EXISTS reset_tokens (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token_hash TEXT UNIQUE NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_reset_tokens_hash ON reset_tokens(token_hash)`,
 ];
 
 async function ensureSchema(database: Db): Promise<void> {
