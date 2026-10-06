@@ -5,6 +5,9 @@ export type UserProfile = {
   name: string;
   contact: string;
   role: UserRole;
+  verified: boolean;
+  homeLat: number | null;
+  homeLng: number | null;
 };
 
 export type BookingStatus =

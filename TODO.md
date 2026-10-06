@@ -61,9 +61,10 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] Header Ops link (fetch-gated)
 - [x] Smoke test: 403 gates, overview 200, settle PAID, double-settle 409
 
-## R4 — Trainer verification
-- [ ] `users.verified` flag; gate *accepting* on VERIFIED
-- [ ] Admin flip endpoint; smoke test unverified blocked
+## R4 — Trainer verification ✅ DONE
+- [x] `users.verified` flag (+ home_lat/lng columns ride along, used in R5); verified/home in profile
+- [x] Accept gated on VERIFIED (403 with pending-verification message) + dashboard banner
+- [x] Admin flip endpoint; smoke test: unverified 403 → flip ok → accept 200
 
 ## R5 — Trainer home base
 - [ ] `users.home_lat/home_lng`; save from trainer dashboard

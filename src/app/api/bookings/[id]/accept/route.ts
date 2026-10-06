@@ -15,6 +15,12 @@ export async function POST(
   if (!user || user.role !== "trainer") {
     return Response.json({ error: "Trainer sign-in is required." }, { status: 401 });
   }
+  if (!user.verified) {
+    return Response.json(
+      { error: "Your trainer account is pending verification — accepting opens after the org verifies you." },
+      { status: 403 },
+    );
+  }
 
   const { id } = await params;
   const result = await acceptBookingWithTrainer(id, user.name);

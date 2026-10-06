@@ -164,6 +164,15 @@ export function TrainerDashboard() {
           </p>
         </div>
 
+        {!user.verified ? (
+          <div className="flex flex-col gap-2 rounded-xl border border-warning/30 bg-warning/10 p-4 shadow-sm">
+            <p className="text-body-md text-charcoal-900">Verification pending</p>
+            <p className="text-body-sm text-muted-600">
+              You can browse requests, but accepting opens after the org verifies your account. New signups are usually reviewed within a day.
+            </p>
+          </div>
+        ) : null}
+
         <div className="flex flex-col gap-2 rounded-xl border border-forest-900/10 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-center gap-3">
             <Button type="button" variant="secondary" onClick={() => void locateMe()} disabled={locating}>

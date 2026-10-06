@@ -167,6 +167,9 @@ const SCHEMA_STATEMENTS = [
     contact TEXT NOT NULL,
     role TEXT NOT NULL,
     password_hash TEXT NOT NULL,
+    verified INTEGER NOT NULL DEFAULT 0,
+    home_lat REAL,
+    home_lng REAL,
     created_at TEXT NOT NULL,
     UNIQUE(contact, role)
   )`,
@@ -265,6 +268,12 @@ async function ensureSchema(database: Db): Promise<void> {
   if (!paymentNames.has("refunded_at")) await database.exec("ALTER TABLE payments ADD COLUMN refunded_at TEXT");
   if (!paymentNames.has("refund_note")) await database.exec("ALTER TABLE payments ADD COLUMN refund_note TEXT");
   if (!paymentNames.has("plan")) await database.exec("ALTER TABLE payments ADD COLUMN plan TEXT NOT NULL DEFAULT 'trial'");
+  // R4/R5: verification flag + trainer home base on pre-existing users tables.
+  const userCols = (await database.prepare("PRAGMA table_info(users)").all()) as { name?: unknown }[];
+  const userNames = new Set(userCols.map((c) => String(c.name)));
+  if (!userNames.has("verified")) await database.exec("ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0");
+  if (!userNames.has("home_lat")) await database.exec("ALTER TABLE users ADD COLUMN home_lat REAL");
+  if (!userNames.has("home_lng")) await database.exec("ALTER TABLE users ADD COLUMN home_lng REAL");
 }
 
 export async function getDb(): Promise<Db> {

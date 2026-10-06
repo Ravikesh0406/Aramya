@@ -3,9 +3,9 @@
 // ARAMYA booking flow — Design System §11 (Booking Flow), §12 (Trainer Matching),
 // §10 (4-Session Trial) and §13 (scheduling rules).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -463,6 +463,8 @@ function RequestSentStep({ booking }: { booking: BookingRequest }) {
 
 export function BookingFlow() {
   const { user, loading: authLoading } = useCurrentUser();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
   const [location, setLocation] = useState(() => searchParams?.get("location") ?? "");
@@ -488,6 +490,15 @@ export function BookingFlow() {
     time === "Specific time" && specificTime
       ? `Specific time · ${specificTime}`
       : time;
+
+  // Visitors go straight to login — no interstitial panel. The full
+  // /book URL (service/days/time picks) rides along as ?redirect=.
+  useEffect(() => {
+    if (!authLoading && !user) {
+      const query = searchParams?.size ? `?${searchParams.toString()}` : "";
+      router.replace(`/login?redirect=${encodeURIComponent(`${pathname ?? "/book"}${query}`)}`);
+    }
+  }, [authLoading, user, router, pathname, searchParams]);
 
   async function locateCurrentLocation() {
     setLocating(true);
@@ -558,16 +569,7 @@ export function BookingFlow() {
   if (!user) {
     return (
       <div className="rounded-xl border border-forest-900/10 bg-ivory-50 p-5 shadow-sm md:p-8">
-        <p className="t-overline text-terracotta-500">Sign in required</p>
-        <h2 className="pt-2 t-h2 text-charcoal-900">Book a trial with an account</h2>
-        <p className="pt-2 text-body text-muted-600">
-          You can explore every service and plan first, but trial requests need a signed-in customer account.
-        </p>
-        <div className="pt-5">
-          <Link href="/login?redirect=/book">
-            <Button size="lg">Sign in to book</Button>
-          </Link>
-        </div>
+        <p className="text-body text-muted-600">Taking you to sign in…</p>
       </div>
     );
   }

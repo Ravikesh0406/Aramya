@@ -94,17 +94,33 @@ function toPublicBooking(row: BookingRow, distanceKm: number | null = null): Boo
 export async function findUserByContactRole(contact: string, role: UserRole): Promise<StoredUser | null> {
   const database = await getDb();
   const row = await database
-    .prepare("SELECT id, name, contact, role, password_hash AS passwordHash FROM users WHERE contact = ? AND role = ?")
-    .get(contact, role) as { id: string; name: string; contact: string; role: UserRole; passwordHash: string } | undefined;
-  return row ? { id: row.id, name: row.name, contact: row.contact, role: row.role, passwordHash: row.passwordHash } : null;
+    .prepare(`SELECT ${PROFILE_COLUMNS}, password_hash AS passwordHash FROM users WHERE contact = ? AND role = ?`)
+    .get(contact, role) as (ProfileRow & { passwordHash: string }) | undefined;
+  return row ? { ...toProfile(row), passwordHash: row.passwordHash } : null;
 }
+
+function toProfile(row: { id: string; name: string; contact: string; role: UserRole; verified?: unknown; home_lat?: unknown; home_lng?: unknown }): UserProfile {
+  return {
+    id: row.id,
+    name: row.name,
+    contact: row.contact,
+    role: row.role,
+    verified: Number(row.verified ?? 0) === 1,
+    homeLat: typeof row.home_lat === "number" ? row.home_lat : null,
+    homeLng: typeof row.home_lng === "number" ? row.home_lng : null,
+  };
+}
+
+const PROFILE_COLUMNS = "id, name, contact, role, verified, home_lat, home_lng";
+
+type ProfileRow = { id: string; name: string; contact: string; role: UserRole; verified?: unknown; home_lat?: unknown; home_lng?: unknown };
 
 export async function listUsersByRole(role: UserRole): Promise<UserProfile[]> {
   const database = await getDb();
   const rows = await database
-    .prepare("SELECT id, name, contact, role FROM users WHERE role = ? ORDER BY created_at DESC")
-    .all(role) as { id: string; name: string; contact: string; role: UserRole }[];
-  return rows.map((row) => ({ id: row.id, name: row.name, contact: row.contact, role: row.role }));
+    .prepare(`SELECT ${PROFILE_COLUMNS} FROM users WHERE role = ? ORDER BY created_at DESC`)
+    .all(role) as ProfileRow[];
+  return rows.map(toProfile);
 }
 
 export async function createUser(input: CreateUserInput): Promise<UserProfile> {
@@ -119,7 +135,7 @@ export async function createUser(input: CreateUserInput): Promise<UserProfile> {
     .prepare("INSERT INTO users (id, name, contact, role, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)")
     .run(id, input.name, input.contact, input.role, input.passwordHash, new Date().toISOString());
 
-  return { id, name: input.name, contact: input.contact, role: input.role };
+  return { id, name: input.name, contact: input.contact, role: input.role, verified: false, homeLat: null, homeLng: null };
 }
 
 export async function createSession(userId: string) {
@@ -138,13 +154,13 @@ export async function getUserBySessionToken(token: string | undefined): Promise<
   const database = await getDb();
   const row = await database
     .prepare(`
-      SELECT u.id, u.name, u.contact, u.role
+      SELECT u.id, u.name, u.contact, u.role, u.verified, u.home_lat, u.home_lng
       FROM auth_sessions s
       JOIN users u ON u.id = s.user_id
       WHERE s.token = ? AND s.expires_at > ?
     `)
-    .get(token, new Date().toISOString()) as { id: string; name: string; contact: string; role: UserRole } | undefined;
-  return row ? { id: row.id, name: row.name, contact: row.contact, role: row.role } : null;
+    .get(token, new Date().toISOString()) as ProfileRow | undefined;
+  return row ? toProfile(row) : null;
 }
 
 export async function deleteSessionToken(token: string | undefined) {
