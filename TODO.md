@@ -87,8 +87,9 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 ## R8 — Password reset
 - [ ] Single-use token flow; SMS delivery when configured, logged in dev
 
-## R10 — Share/PWA touches
-- [ ] `opengraph-image.tsx`, `manifest.ts`, theme-color
+## R10 — Share/PWA touches ✅ DONE
+- [x] `opengraph-image.tsx` (200 image/png verified), `manifest.ts`, theme-color
+- [x] Build green (25 routes)
 
 ## Phase 6 — Safety rails ✅ DONE
 - [x] Rate-limit login/signup (10/min/IP), bookings + pay-order (per-user)
