@@ -80,8 +80,9 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] find-then-insert → `getOrCreateTrainerPayout` (catch UNIQUE → fetch existing) in verify + webhook
 - [x] Smoke test: double-verify returns CAPTURED twice, single payout row
 
-## R7 — Automated tests
-- [ ] vitest harness; unit tests for pricing, geo, rate-limit
+## R7 — Automated tests ✅ DONE
+- [x] vitest harness (`npm test`), `@/` alias, 9 unit tests green
+- [x] Coverage: pricing splits, geo math, rate-limit buckets
 
 ## R8 — Password reset
 - [ ] Single-use token flow; SMS delivery when configured, logged in dev
