@@ -398,6 +398,16 @@ export async function getBookingForPayment(id: string): Promise<{
   return { id: row.id, customerId: row.customer_id, trainerName: row.trainer_name, status: row.status };
 }
 
+export async function countBookingsByStatus(): Promise<Record<string, number>> {
+  const database = await getDb();
+  const rows = await database
+    .prepare("SELECT status, COUNT(*) AS count FROM bookings GROUP BY status")
+    .all() as { status: string; count: number }[];
+  const out: Record<string, number> = {};
+  for (const row of rows) out[row.status] = Number(row.count);
+  return out;
+}
+
 // --- Session lifecycle (R1) ---------------------------------------------------
 // Trainer drives Confirmed → In Progress → Completed; either party can flag
 // No Show; the customer optionally confirms a Completed booking (feeds R2

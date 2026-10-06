@@ -265,3 +265,63 @@ export async function listPayoutsForTrainer(trainerName: string): Promise<Payout
     .all(trainerName);
   return rows.map((row) => toPayout(asRawPayout(row)));
 }
+
+export async function listPayablePayouts(): Promise<PayoutRow[]> {
+  const database = await getDb();
+  const rows = await database
+    .prepare("SELECT * FROM payouts WHERE status = 'PAYABLE' ORDER BY created_at ASC");
+  return (await rows.all()).map((row) => toPayout(asRawPayout(row)));
+}
+
+export async function payoutTotals(): Promise<{ payablePaise: number; paidPaise: number }> {
+  const database = await getDb();
+  const rows = await database
+    .prepare("SELECT status, SUM(amount_paise) AS total FROM payouts GROUP BY status")
+    .all() as { status: string; total: number | null }[];
+  let payablePaise = 0;
+  let paidPaise = 0;
+  for (const row of rows) {
+    if (row.status === "PAYABLE") payablePaise = Number(row.total ?? 0);
+    if (row.status === "PAID") paidPaise = Number(row.total ?? 0);
+  }
+  return { payablePaise, paidPaise };
+}
+
+export async function getPayoutById(id: string): Promise<PayoutRow | null> {
+  const database = await getDb();
+  const row = await database.prepare("SELECT * FROM payouts WHERE id = ?").get(id);
+  return row ? toPayout(asRawPayout(row)) : null;
+}
+
+export type ManualRefund = {
+  id: string;
+  bookingId: string;
+  amountPaise: number;
+  razorpayPaymentId: string | null;
+  refundNote: string | null;
+  refundedAt: string | null;
+};
+
+export async function listManualRefunds(): Promise<ManualRefund[]> {
+  const database = await getDb();
+  const rows = await database
+    .prepare(
+      "SELECT id, booking_id, amount_paise, razorpay_payment_id, refund_note, refunded_at FROM payments WHERE refunded_at IS NOT NULL AND refund_reference IS NULL ORDER BY refunded_at DESC",
+    )
+    .all() as {
+    id: string;
+    booking_id: string;
+    amount_paise: number;
+    razorpay_payment_id: string | null;
+    refund_note: string | null;
+    refunded_at: string | null;
+  }[];
+  return rows.map((r) => ({
+    id: r.id,
+    bookingId: r.booking_id,
+    amountPaise: r.amount_paise,
+    razorpayPaymentId: r.razorpay_payment_id,
+    refundNote: r.refund_note,
+    refundedAt: r.refunded_at,
+  }));
+}

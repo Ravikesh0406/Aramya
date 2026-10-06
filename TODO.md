@@ -55,10 +55,11 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] Rate UI in customer dashboard; averages on trainer dashboard
 - [x] Smoke test: pre-completion → 409, duplicate → 409, average 5.0/1 shown
 
-## R3 — Org admin view
-- [ ] `ADMIN_CONTACTS` allowlist, `/admin` page (payout queue, refund queue, overview)
-- [ ] `POST /api/payments/payouts/:id/settle` (admin, manual reference)
-- [ ] Header admin link (fetch-gated)
+## R3 — Org admin view ✅ DONE
+- [x] `ADMIN_CONTACTS` allowlist, `/admin` page (payout queue, refund queue, overview)
+- [x] `POST /api/admin/payouts/:id/settle` (admin, manual reference)
+- [x] Header Ops link (fetch-gated)
+- [x] Smoke test: 403 gates, overview 200, settle PAID, double-settle 409
 
 ## R4 — Trainer verification
 - [ ] `users.verified` flag; gate *accepting* on VERIFIED

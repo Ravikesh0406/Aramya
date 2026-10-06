@@ -40,6 +40,7 @@ export function Header() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const suggestions = SEARCH_SUGGESTIONS.filter((s) =>
@@ -68,6 +69,25 @@ export function Header() {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, []);
+
+  // Org console link only lights up for allowlisted admins.
+  useEffect(() => {
+    if (!user) {
+      setIsOrgAdmin(false);
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/admin/overview", { cache: "no-store" })
+      .then((res) => {
+        if (!cancelled) setIsOrgAdmin(res.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setIsOrgAdmin(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   async function locateCurrentLocation() {
     setLocationLoading(true);
@@ -231,6 +251,14 @@ export function Header() {
               </button>
             ) : null}
             <TrainerBell />
+            {isOrgAdmin ? (
+              <Link
+                href="/admin"
+                className="hidden items-center gap-1.5 rounded-sm px-3 py-2 text-body-sm font-semibold text-forest-900 transition duration-200 ease-out hover:text-forest-800 md:inline-flex"
+              >
+                Ops
+              </Link>
+            ) : null}
             <ButtonLink href="/book" size="sm" className="hidden sm:inline-flex">
               Book a Trial
             </ButtonLink>
