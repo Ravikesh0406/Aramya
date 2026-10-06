@@ -221,6 +221,7 @@ export function SessionCard({
   onConfirmCompletion,
   onMarkNoShow,
   showConfirm,
+  cancelNote,
 }: {
   service: string;
   trainer: string;
@@ -234,6 +235,7 @@ export function SessionCard({
   onConfirmCompletion?: () => void;
   onMarkNoShow?: () => void;
   showConfirm?: boolean;
+  cancelNote?: string;
 }) {
   return (
     <article className="flex h-full flex-col gap-4 rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
@@ -295,6 +297,9 @@ export function SessionCard({
               </button>
             ) : null}
           </>
+        ) : null}
+        {cancelNote ? (
+          <p className="t-caption text-muted-600">{cancelNote}</p>
         ) : null}
       </div>
     </article>

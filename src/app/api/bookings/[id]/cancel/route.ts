@@ -1,6 +1,7 @@
-import { cancelBooking, getBookingCustomerId } from "@/lib/server/store";
+import { cancelBooking, getBookingForPayment } from "@/lib/server/store";
 import { getCurrentUser } from "@/lib/server/session";
 import { requestRefundForBooking } from "@/lib/server/payments";
+import { nextDateForDay } from "@/lib/dates";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (request.headers.get("X-Requested-With") !== "XMLHttpRequest") {
@@ -13,15 +14,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  if (await getBookingCustomerId(id) !== user.id) {
+  const facts = await getBookingForPayment(id);
+  if (!facts || facts.customerId !== user.id) {
     return Response.json({ error: "You can only cancel your own request." }, { status: 403 });
   }
   const booking = await cancelBooking(id);
   if (!booking) {
     return Response.json({ error: "Booking not found." }, { status: 404 });
   }
-  // Paid booking → money must move too. Auto-attempts a live refund and
-  // records a manual fallback; never silent.
-  const refund = await requestRefundForBooking(id, user.id);
-  return Response.json({ booking, refund: refund.refunded ? refund : null });
+  // Cancellation window: free until the day before the first session,
+  // org decision when cancelling on/after the day before (day granularity
+  // keeps the boundary deterministic — no millisecond coin flips).
+  const startOfDay = (d: Date) => {
+    const copy = new Date(d);
+    copy.setHours(0, 0, 0, 0);
+    return copy.getTime();
+  };
+  const firstSession = facts.days
+    .map((day) => nextDateForDay(day))
+    .filter((d): d is Date => d !== null)
+    .sort((a, b) => a.getTime() - b.getTime())[0];
+  const dayBefore = startOfDay(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const insideWindow = !firstSession || startOfDay(firstSession) <= dayBefore;
+  // Paid booking → money must move too. Auto-attempts a live refund, records
+  // a manual fallback; inside-window cancels always go manual.
+  const refund = await requestRefundForBooking(id, user.id, { autoRefund: !insideWindow });
+  return Response.json({
+    booking,
+    cancelWindow: insideWindow ? "inside-window" : "free",
+    refund: refund.refunded ? refund : null,
+  });
 }

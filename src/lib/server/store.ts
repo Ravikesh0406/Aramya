@@ -406,12 +406,13 @@ export async function getBookingForPayment(id: string): Promise<{
   customerId: string;
   trainerName: string | null;
   status: BookingStatus;
+  days: string[];
 } | null> {
   const database = await getDb();
   const raw = await database.prepare("SELECT * FROM bookings WHERE id = ?").get(id);
   if (!raw) return null;
   const row = asBookingRow(raw);
-  return { id: row.id, customerId: row.customer_id, trainerName: row.trainer_name, status: row.status };
+  return { id: row.id, customerId: row.customer_id, trainerName: row.trainer_name, status: row.status, days: parseJsonArray(row.days) ?? [] };
 }
 
 export async function setHomeBase(userId: string, lat: number, lng: number): Promise<UserProfile | null> {

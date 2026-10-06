@@ -165,7 +165,11 @@ export type RefundResult =
 // Cancel-path refund: attempts a live Razorpay refund, records a manual
 // fallback otherwise. Money is never dropped silently — every outcome lands
 // on the payment row.
-export async function requestRefundForBooking(bookingId: string, userId: string): Promise<RefundResult> {
+export async function requestRefundForBooking(
+  bookingId: string,
+  userId: string,
+  opts?: { autoRefund?: boolean },
+): Promise<RefundResult> {
   const database = await getDb();
   const payment = await findCapturedPaymentForBooking(bookingId);
   if (!payment || payment.userId !== userId || payment.refundedAt) {
@@ -173,6 +177,15 @@ export async function requestRefundForBooking(bookingId: string, userId: string)
   }
   if (!payment.razorpayPaymentId) {
     return { refunded: false, reason: "Payment has no provider reference." };
+  }
+  // Inside-window cancels never auto-refund — the org reviews them.
+  if (opts?.autoRefund === false) {
+    const now = new Date().toISOString();
+    const note = "Cancelled inside the 24h window — org decision required before refunding.";
+    await database
+      .prepare("UPDATE payments SET refunded_at = ?, refund_note = ? WHERE id = ?")
+      .run(now, note, payment.id);
+    return { refunded: true, status: "MANUAL", reference: null, note };
   }
   const { getGateway } = await import("@/lib/payments/gateway");
   const attempt = await getGateway().refundPayment({

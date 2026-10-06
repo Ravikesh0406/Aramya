@@ -273,6 +273,29 @@ export function SessionsDashboard() {
 
   const accepted = bookings.filter((booking) => booking.status === "Confirmed");
   const bookingById = new Map(bookings.map((booking) => [booking.id, booking]));
+  // Cancellation window copy per booking (day granularity, mirrors the
+  // cancel route: free until the day before the first session).
+  const startOfDay = (d: Date) => {
+    const copy = new Date(d);
+    copy.setHours(0, 0, 0, 0);
+    return copy.getTime();
+  };
+  const dayBefore = startOfDay(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const cancelNoteById = new Map(
+    bookings.map((booking) => {
+      const first = booking.days
+        .map((day) => nextDateForDay(day))
+        .filter((d): d is Date => d !== null)
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+      const inside = !first || startOfDay(first) <= dayBefore;
+      return [
+        booking.id,
+        inside
+          ? "Cancelling within 24h of a session — refund needs org review."
+          : `Free cancellation until ${formatDate(first)}.`,
+      ];
+    }),
+  );
   const rateable = bookings.filter(
     (booking) =>
       booking.status === "Completed" && booking.trainerName && !reviewedIds.has(booking.id),
@@ -367,6 +390,7 @@ export function SessionsDashboard() {
                       }
                       onConfirmCompletion={() => void runBookingAction(sessionProps.bookingId, "confirm")}
                       onMarkNoShow={() => void runBookingAction(sessionProps.bookingId, "noshow")}
+                      cancelNote={cancelNoteById.get(sessionProps.bookingId)}
                     />
                   ))}
                 </div>

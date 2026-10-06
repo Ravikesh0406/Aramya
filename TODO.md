@@ -71,9 +71,10 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] Feed defaults to home base when no live fix passed
 - [x] Smoke test: Delhi base → Delhi visible, Mumbai absent, no params needed
 
-## R6 — Cancellation window
-- [ ] Free cancel >24h before first session; inside-window → manual org decision
-- [ ] Copy update
+## R6 — Cancellation window ✅ DONE
+- [x] Free cancel until day-before-first-session; inside-window → MANUAL org decision (no auto-refund)
+- [x] Day-granularity boundary (deterministic, no ms coin flips); UI copy per booking
+- [x] Smoke test: free + MANUAL refund, inside-window + 24h MANUAL note
 
 ## R9 — Payout race hardening
 - [ ] find-then-insert → catch UNIQUE → fetch existing (verify + webhook)
