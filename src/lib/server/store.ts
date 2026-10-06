@@ -414,6 +414,16 @@ export async function getBookingForPayment(id: string): Promise<{
   return { id: row.id, customerId: row.customer_id, trainerName: row.trainer_name, status: row.status };
 }
 
+export async function setHomeBase(userId: string, lat: number, lng: number): Promise<UserProfile | null> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const database = await getDb();
+  await database.prepare("UPDATE users SET home_lat = ?, home_lng = ? WHERE id = ?").run(lat, lng, userId);
+  const row = await database
+    .prepare("SELECT id, name, contact, role, verified, home_lat, home_lng FROM users WHERE id = ?")
+    .get(userId) as ProfileRow | undefined;
+  return row ? toProfile(row) : null;
+}
+
 export async function countBookingsByStatus(): Promise<Record<string, number>> {
   const database = await getDb();
   const rows = await database

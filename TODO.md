@@ -66,9 +66,10 @@ After each phase: `npm run build` + curl smoke test (signup → book → accept 
 - [x] Accept gated on VERIFIED (403 with pending-verification message) + dashboard banner
 - [x] Admin flip endpoint; smoke test: unverified 403 → flip ok → accept 200
 
-## R5 — Trainer home base
-- [ ] `users.home_lat/home_lng`; save from trainer dashboard
-- [ ] Feed defaults to home base when no live fix passed
+## R5 — Trainer home base ✅ DONE
+- [x] `users.home_lat/home_lng`; save from trainer dashboard (+ profile refresh)
+- [x] Feed defaults to home base when no live fix passed
+- [x] Smoke test: Delhi base → Delhi visible, Mumbai absent, no params needed
 
 ## R6 — Cancellation window
 - [ ] Free cancel >24h before first session; inside-window → manual org decision

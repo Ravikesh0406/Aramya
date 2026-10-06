@@ -23,10 +23,19 @@ export async function GET(request: Request) {
   const lat = latRaw == null ? NaN : Number(latRaw);
   const lng = lngRaw == null ? NaN : Number(lngRaw);
   const radiusKm = Number(params.get("radiusKm") ?? DEFAULT_MATCH_RADIUS_KM);
-  const near =
-    user.role === "trainer" && Number.isFinite(lat) && Number.isFinite(lng)
-      ? { lat, lng, radiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : DEFAULT_MATCH_RADIUS_KM }
-      : undefined;
+  // Trainers without a live fix fall back to their saved home base, so
+  // matching works even when they never open the location prompt.
+  let base: { lat: number; lng: number } | null = null;
+  if (user.role === "trainer") {
+    if (Number.isFinite(lat) && Number.isFinite(lng)) base = { lat, lng };
+    else if (user.homeLat != null && user.homeLng != null) base = { lat: user.homeLat, lng: user.homeLng };
+  }
+  const near = base
+    ? {
+        ...base,
+        radiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : DEFAULT_MATCH_RADIUS_KM,
+      }
+    : undefined;
   const bookings = await listVisibleBookings(user, near);
   // Lazy cron: stale In Progress sessions resolve on read.
   await autoCompleteStaleSessions();

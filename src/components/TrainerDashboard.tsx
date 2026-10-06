@@ -25,6 +25,7 @@ export function TrainerDashboard() {
   const [fix, setFix] = useState<{ lat: number; lng: number; label: string } | null>(null);
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState("");
+  const [savingBase, setSavingBase] = useState(false);
   const { bookings, loading: bookingsLoading } = useBookings(
     fix ? { lat: fix.lat, lng: fix.lng, radiusKm: DEFAULT_MATCH_RADIUS_KM } : null,
   );
@@ -112,6 +113,27 @@ export function TrainerDashboard() {
     }
   }
 
+  async function saveHomeBase() {
+    if (!fix) return;
+    setSavingBase(true);
+    setGeoError("");
+    try {
+      const res = await fetch("/api/profile/home", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+        body: JSON.stringify({ lat: fix.lat, lng: fix.lng }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Unable to save home base.");
+      // Refresh the cached profile (home base banner) via the auth channel.
+      window.dispatchEvent(new Event("aramya:currentUserChanged"));
+    } catch (error) {
+      setGeoError(error instanceof Error ? error.message : "Unable to save home base.");
+    } finally {
+      setSavingBase(false);
+    }
+  }
+
   if (authLoading || bookingsLoading) {
     return (
       <section className="py-14 md:py-20">
@@ -180,9 +202,23 @@ export function TrainerDashboard() {
             </Button>
             {fix ? (
               <p className="text-body-sm text-muted-600">📍 {fix.label} — showing requests within {DEFAULT_MATCH_RADIUS_KM} km, nearest first.</p>
+            ) : user.homeLat != null && user.homeLng != null ? (
+              <p className="text-body-sm text-muted-600">
+                Home base saved ({user.homeLat.toFixed(3)}, {user.homeLng.toFixed(3)}) — matching around it. Capture a live fix for right-now accuracy.
+              </p>
             ) : (
               <p className="text-body-sm text-muted-600">Showing all requests. Capture your location to filter nearby ones.</p>
             )}
+            {fix ? (
+              <button
+                type="button"
+                onClick={() => void saveHomeBase()}
+                disabled={savingBase}
+                className="self-start text-body-sm font-semibold text-forest-900 underline-offset-2 hover:underline disabled:opacity-50"
+              >
+                {savingBase ? "Saving…" : "Save as my home base"}
+              </button>
+            ) : null}
           </div>
           {geoError ? <p className="text-body-sm text-error">{geoError}</p> : null}
         </div>
