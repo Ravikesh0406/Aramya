@@ -1,7 +1,7 @@
 "use client";
 
 // ARAMYA marketplace header — Design System §7.
-// Logo | Location | Search | Services | How it Works | Plans | For Trainers | Login | Book a Trial
+// Logo | Location | Search | Find a Trainer | How it Works | Pricing | For Trainers | Login | Book
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -83,11 +83,9 @@ export function Header() {
 
   function chooseLocation(option: string) {
     if (option === "Use current location") {
-      void locateCurrentLocation();
-    } else if (option === "Search locality") {
-      setLocation("Indiranagar, Bengaluru");
-    } else {
-      setLocation("Enter your address");
+      void locateCurrentLocation().then(() => {
+        router.push("/trainers");
+      });
     }
     setLocationOpen(false);
   }
@@ -229,8 +227,8 @@ export function Header() {
                 Sign out
               </button>
             ) : null}
-            <ButtonLink href="/book" size="sm" className="hidden sm:inline-flex">
-              Book a Trial
+            <ButtonLink href="/trainers" size="sm" className="hidden sm:inline-flex">
+              Find a trainer
             </ButtonLink>
             <button
               type="button"
@@ -338,12 +336,8 @@ export function Header() {
                 ))}
               </div>
 
-              <ButtonLink
-                href="/book"
-                size="lg"
-                className="mt-1 w-full"
-              >
-                Book a Trial
+              <ButtonLink href="/trainers" size="lg" className="mt-1 w-full">
+                Find a trainer
               </ButtonLink>
               <p className="t-caption text-muted-600">
                 {SERVICES.length} active services · Sessions booked 24+ hours in

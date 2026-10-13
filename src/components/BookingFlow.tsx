@@ -1,7 +1,7 @@
 "use client";
 
-// ARAMYA booking flow — Design System §11 (Booking Flow), §12 (Trainer Matching),
-// §10 (4-Session Trial) and §13 (scheduling rules).
+// ARAMYA legacy open-request flow (kept for existing customers and existing
+// data). New bookings go through the targeted flow in TargetedBookingFlow.tsx.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -16,7 +16,7 @@ import {
 } from "@/components/Icons";
 import { SERVICE_ICONS } from "@/components/Icons";
 import { Button, CheckList } from "@/components/ui";
-import { DAYS, SERVICES, TIME_OPTIONS, TRIAL } from "@/lib/data";
+import { DAYS, SERVICES, TIME_OPTIONS } from "@/lib/data";
 import {
   getCurrentLocation,
   getCurrentLocationErrorMessage,
@@ -28,7 +28,6 @@ const STEP_LABELS = [
   "Location",
   "Service",
   "Details",
-  "Trial",
   "Days",
   "Time",
   "Request",
@@ -169,50 +168,6 @@ function DetailStep({ slug, onNext, onBack }: { slug: string; onNext: () => void
         </Button>
         <Button size="lg" onClick={onNext}>
           Looks good <ArrowRightIcon size={17} />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function TrialStep({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h2 className="t-h2 text-charcoal-900">Your booking starts with the trial</h2>
-        <p className="pt-2 text-body text-muted-600">
-          Your first four sessions run as a {TRIAL.name}.
-        </p>
-      </div>
-
-      <div className="rounded-xl border border-forest-900/12 bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="t-h4 text-charcoal-900">{TRIAL.name}</p>
-            <p className="pt-1 text-body-sm text-muted-600">
-              4 private at-home sessions with a matched trainer
-            </p>
-          </div>
-          <span className="rounded-pill bg-forest-900 px-3 py-1 text-caption font-semibold text-white">
-            Early access
-          </span>
-        </div>
-        <div className="mt-4 flex items-baseline gap-3 border-t border-forest-900/8 pt-4">
-          <span className="text-muted-600 line-through">{TRIAL.regularPrice}</span>
-          <span className="t-h1 text-forest-900">{TRIAL.price}</span>
-        </div>
-        <div className="mt-5">
-          <p className="t-overline pb-4 text-muted-600">What&apos;s included</p>
-          <CheckList items={TRIAL.included} />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <Button variant="ghost" onClick={onBack}>
-          Back
-        </Button>
-        <Button size="lg" onClick={onNext}>
-          Book Your Trial <ArrowRightIcon size={17} />
         </Button>
       </div>
     </div>
@@ -378,7 +333,7 @@ function RequestStep({
       <div>
         <h2 className="t-h2 text-charcoal-900">Review your request</h2>
         <p className="pt-2 text-body text-muted-600">
-          Send your request — nearby eligible trainers will be notified.
+          Send your request — nearby trainers are notified and one accepts it.
         </p>
       </div>
 
@@ -386,7 +341,6 @@ function RequestStep({
         {[
           ["Location", summary.location],
           ["Service", summary.service],
-          ["Booking", `${TRIAL.name} · ${TRIAL.price}`],
           ["Preferred days", summary.days.join(", ")],
           ["Preferred time", summary.time],
           ["Advance booking", "24+ hours"],
@@ -530,7 +484,7 @@ export function BookingFlow() {
         specificTime,
       });
       setCreatedBooking(booking);
-      setStep(7);
+      setStep(6);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Unable to send your request.",
@@ -625,19 +579,15 @@ export function BookingFlow() {
         ) : null}
 
         {step === 3 ? (
-          <TrialStep onNext={() => setStep(4)} onBack={() => setStep(2)} />
-        ) : null}
-
-        {step === 4 ? (
           <DaysStep
             selected={days}
             onToggle={toggleDay}
-            onNext={() => setStep(5)}
-            onBack={() => setStep(3)}
+            onNext={() => setStep(4)}
+            onBack={() => setStep(2)}
           />
         ) : null}
 
-        {step === 5 ? (
+        {step === 4 ? (
           <TimeStep
             value={time}
             specific={specificTime}
@@ -648,7 +598,7 @@ export function BookingFlow() {
           />
         ) : null}
 
-        {step === 6 ? (
+        {step === 5 ? (
           <>
             <RequestStep
               summary={{
@@ -667,7 +617,7 @@ export function BookingFlow() {
           </>
         ) : null}
 
-        {step === 7 && createdBooking ? (
+        {step === 6 && createdBooking ? (
           <RequestSentStep booking={createdBooking} />
         ) : null}
       </div>

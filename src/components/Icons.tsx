@@ -39,6 +39,24 @@ export function LocationIcon(props: IconProps) {
   );
 }
 
+export function MapPinIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 21s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" />
+      <circle cx="12" cy="11" r="2" />
+    </svg>
+  );
+}
+
+export function VerifiedIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="m12 2.5 2.2 1.6 2.7-.2.9 2.5 2.2 1.6-1 2.6 1 2.6-2.2 1.6-.9 2.5-2.7-.2L12 20.3l-2.2-1.6-2.7.2-.9-2.5-2.2-1.6 1-2.6-1-2.6L6.2 6.4l.9-2.5 2.7.2Z" />
+      <path d="m8.8 11.6 2.2 2.2 4.2-4.4" />
+    </svg>
+  );
+}
+
 export function CrosshairIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

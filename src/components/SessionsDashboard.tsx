@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Container, Overline, ButtonLink, StatusBadge } from "@/components/ui";
-import { SessionCard, PlanCard } from "@/components/cards";
-import { MONTHLY_PLAN, TRIAL, DAYS, TIME_OPTIONS } from "@/lib/data";
+import { SessionCard } from "@/components/cards";
+import { DAYS, TIME_OPTIONS } from "@/lib/data";
 import { CalendarIcon, ClockIcon, CheckIcon } from "@/components/Icons";
 import {
   useBookings,
@@ -255,7 +255,7 @@ export function SessionsDashboard() {
                 Your requested sessions, accepted bookings and plan — all in one place.
               </p>
             </div>
-            <ButtonLink href="/book">Book a Trial</ButtonLink>
+            <ButtonLink href="/trainers">Find a trainer</ButtonLink>
           </div>
 
           <nav aria-label="Customer" className="flex flex-wrap gap-2 pt-1">
@@ -289,7 +289,7 @@ export function SessionsDashboard() {
               {[
                 { value: String(sessions.length), label: "Requested days" },
                 { value: String(accepted.length), label: "Confirmed bookings" },
-                { value: TRIAL.price, label: "Trial price" },
+                { value: currentBooking?.trainerName ?? "—", label: "Your trainer" },
                 { value: "24h+", label: "Advance booking" },
               ].map((tile) => (
                 <div
@@ -305,7 +305,7 @@ export function SessionsDashboard() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h2 className="t-h3 text-charcoal-900">
-                  {accepted.length > 0 ? "Upcoming sessions" : "Requested trial days"}
+                  {accepted.length > 0 ? "Upcoming sessions" : "Your requests"}
                 </h2>
                 <span className="rounded-pill bg-forest-900/8 px-3 py-1 text-caption font-semibold text-forest-900">
                   {sessions.length}
@@ -331,10 +331,10 @@ export function SessionsDashboard() {
                 <div className="rounded-xl border border-dashed border-forest-900/15 bg-white p-8 text-center shadow-sm">
                   <p className="t-h4 text-charcoal-900">No sessions requested yet</p>
                   <p className="pt-2 text-body-sm text-muted-600">
-                    Start a trial request to see your selected days, preferred time and trainer status here.
+                    Send a request to a trainer to see your chosen days, time and status here.
                   </p>
                   <div className="pt-5">
-                    <ButtonLink href="/book">Book a Trial</ButtonLink>
+                    <ButtonLink href="/trainers">Find a trainer</ButtonLink>
                   </div>
                 </div>
               )}
@@ -372,9 +372,9 @@ export function SessionsDashboard() {
                 <>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="t-h4 text-charcoal-900">{TRIAL.name}</p>
+                      <p className="t-h4 text-charcoal-900">{currentBooking.serviceName}</p>
                       <p className="pt-0.5 text-body-sm text-muted-600">
-                        {currentBooking.serviceName}
+                        with {currentBooking.trainerName ?? "your trainer"}
                       </p>
                       <p className="pt-1 text-caption text-muted-600">
                         Reference {currentBooking.reference}
@@ -382,34 +382,33 @@ export function SessionsDashboard() {
                     </div>
                     <StatusBadge status={currentBooking.status} />
                   </div>
-                  <div className="mt-4 flex items-baseline gap-2 border-t border-forest-900/8 pt-4">
-                    <span className="text-body-sm text-muted-600 line-through">
-                      {TRIAL.regularPrice}
-                    </span>
-                    <span className="t-h2 text-forest-900">{TRIAL.price}</span>
+                  <div className="mt-4 border-t border-forest-900/8 pt-4">
+                    <p className="text-body-sm text-muted-600">
+                      Payment is arranged directly with your trainer.
+                      {currentBooking.pricePaise
+                        ? ` Agreed price: ₹${(currentBooking.pricePaise / 100).toLocaleString("en-IN")}.`
+                        : ""}
+                    </p>
                   </div>
                 </>
               ) : (
                 <div>
-                  <p className="t-h4 text-charcoal-900">{TRIAL.name}</p>
+                  <p className="t-h4 text-charcoal-900">No booking yet</p>
                   <p className="pt-1 text-body-sm text-muted-600">
-                    Create a booking request to see it here.
+                    Send a booking request to a trainer and it appears here.
                   </p>
                 </div>
               )}
             </div>
 
-            <PlanCard />
-
             <div className="rounded-xl border border-forest-900/10 bg-sand-100/70 p-6">
-              <p className="t-h4 text-charcoal-900">Continue training</p>
+              <p className="t-h4 text-charcoal-900">How pricing works</p>
               <p className="pt-1.5 text-body-sm text-muted-600">
-                The {MONTHLY_PLAN.name} keeps your preferred schedule going at{" "}
-                {MONTHLY_PLAN.price} / {MONTHLY_PLAN.period}.
+                Each trainer sets their own prices, and payment is arranged directly with them.
               </p>
               <div className="pt-4">
                 <ButtonLink href="/plans" variant="secondary" className="w-full">
-                  View plans
+                  How pricing works
                 </ButtonLink>
               </div>
             </div>

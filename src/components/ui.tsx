@@ -2,7 +2,6 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { CheckIcon } from "@/components/Icons";
-import { TRIAL } from "@/lib/data";
 
 /* ---------------------------------------------------------------- Container */
 
@@ -177,14 +176,6 @@ export function CheckList({
   );
 }
 
-/* -------------------------------------------------------------- Price helpers */
-
-export function StruckPrice({ className = "" }: { className?: string }) {
-  return (
-    <span className={`text-muted-600 line-through ${className}`}>{TRIAL.regularPrice}</span>
-  );
-}
-
 /* -------------------------------------------------------------- StatusBadge */
 
 const STATUS_TONES: Record<string, string> = {
@@ -199,6 +190,7 @@ const STATUS_TONES: Record<string, string> = {
   Expired: "border-warning/30 bg-warning/10 text-warning",
   Cancelled: "border-error/30 bg-error/10 text-error",
   "No Show": "border-error/30 bg-error/10 text-error",
+  Declined: "border-error/30 bg-error/10 text-error",
   Disputed: "border-error/30 bg-error/10 text-error",
 };
 

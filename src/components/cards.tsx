@@ -1,10 +1,10 @@
-// ARAMYA core cards — Service Card, Trial Card, Plan Card, Trainer Card, Session Card.
+// ARAMYA core cards — Service Card, Trainer Card, Session Card.
 // (Design System §24 — Core Components)
 import Link from "next/link";
 import { ArrowRightIcon, StarIcon, ClockIcon, CalendarIcon } from "@/components/Icons";
 import { SERVICE_ICONS } from "@/components/Icons";
-import { ButtonLink, CheckList, StatusBadge } from "@/components/ui";
-import { MONTHLY_PLAN, TRIAL, type Service } from "@/lib/data";
+import { StatusBadge } from "@/components/ui";
+import { type Service } from "@/lib/data";
 
 /* ------------------------------------------------------------- ServiceCard */
 
@@ -30,123 +30,6 @@ export function ServiceCard({ service }: { service: Service }) {
         />
       </span>
     </Link>
-  );
-}
-
-/* --------------------------------------------------------------- TrialCard */
-
-export function TrialCard({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={`flex flex-col overflow-hidden rounded-xl border border-forest-900/10 bg-white shadow-md ${className}`}
-    >
-      <div className="flex items-start justify-between gap-4 border-b border-forest-900/8 bg-ivory-50 px-6 py-5">
-        <div>
-          <p className="t-overline text-terracotta-500">Start here</p>
-          <h3 className="t-h3 pt-1 text-charcoal-900">{TRIAL.name}</h3>
-        </div>
-        <span className="rounded-pill bg-forest-900 px-3 py-1 text-caption font-semibold text-white">
-          Early access
-        </span>
-      </div>
-
-      <div className="flex flex-col gap-1 px-6 pt-6">
-        <div className="flex items-baseline gap-3">
-          <span className="text-muted-600 line-through">{TRIAL.regularPrice}</span>
-          <span className="t-display text-forest-900">{TRIAL.price}</span>
-        </div>
-        <p className="t-caption text-muted-600">
-          For 4 private at-home sessions · {TRIAL.name}
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-4 px-6 py-6">
-        <p className="t-overline text-muted-600">What&apos;s included</p>
-        <CheckList items={TRIAL.included} />
-      </div>
-
-      <div className="mt-auto flex flex-col gap-3 border-t border-forest-900/8 px-6 py-5">
-        <ButtonLink href="/book" size="lg" className="w-full">
-          {TRIAL.cta}
-        </ButtonLink>
-        <p className="t-caption text-center text-muted-600">
-          Sessions must be booked 24 hours in advance or more.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------- PlanCard */
-
-export function PlanCard({
-  tone = "light",
-  className = "",
-}: {
-  tone?: "light" | "dark";
-  className?: string;
-}) {
-  const dark = tone === "dark";
-  return (
-    <div
-      className={`flex flex-col overflow-hidden rounded-xl border shadow-md ${
-        dark
-          ? "border-ivory-50/15 bg-forest-900 text-ivory-50"
-          : "border-forest-900/10 bg-white text-charcoal-900"
-      } ${className}`}
-    >
-      <div
-        className={`flex items-start justify-between gap-4 border-b px-6 py-5 ${
-          dark ? "border-ivory-50/15 bg-forest-950/60" : "border-forest-900/8 bg-ivory-50"
-        }`}
-      >
-        <div>
-          <p className={`t-overline ${dark ? "text-sage-500" : "text-terracotta-500"}`}>
-            {MONTHLY_PLAN.name}
-          </p>
-          <div className="flex items-baseline gap-2 pt-1.5">
-            <span className={`t-display ${dark ? "text-ivory-50" : "text-forest-900"}`}>
-              {MONTHLY_PLAN.price}
-            </span>
-            <span className={`t-body-md ${dark ? "text-ivory-50/75" : "text-muted-600"}`}>
-              / {MONTHLY_PLAN.period}
-            </span>
-          </div>
-        </div>
-        <span
-          className={`rounded-pill px-3 py-1 text-caption font-semibold ${
-            dark ? "bg-ivory-50/15 text-ivory-50" : "bg-forest-900/8 text-forest-900"
-          }`}
-        >
-          Ongoing
-        </span>
-      </div>
-
-      <div className="flex flex-col gap-4 px-6 py-6">
-        <p className={`t-overline ${dark ? "text-ivory-50/60" : "text-muted-600"}`}>
-          What&apos;s included
-        </p>
-        <CheckList items={MONTHLY_PLAN.included} tone={dark ? "light" : "dark"} />
-      </div>
-
-      <div
-        className={`mt-auto flex flex-col gap-3 border-t px-6 py-5 ${
-          dark ? "border-ivory-50/15" : "border-forest-900/8"
-        }`}
-      >
-        <ButtonLink
-          href="/book"
-          size="lg"
-          variant={dark ? "secondary" : "primary"}
-          className={`w-full ${dark ? "border-ivory-50/30 bg-transparent text-ivory-50 hover:border-ivory-50/60 hover:bg-ivory-50/10" : ""}`}
-        >
-          Start with a Trial
-        </ButtonLink>
-        <p className={`t-caption text-center ${dark ? "text-ivory-50/60" : "text-muted-600"}`}>
-          {MONTHLY_PLAN.note}
-        </p>
-      </div>
-    </div>
   );
 }
 

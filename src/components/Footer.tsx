@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Container } from "@/components/ui";
 import { Logo } from "@/components/Logo";
-import { SERVICES, TRIAL, MONTHLY_PLAN } from "@/lib/data";
+import { SERVICES } from "@/lib/data";
 
 const FOOTER_COLUMNS = [
   {
@@ -18,7 +18,7 @@ const FOOTER_COLUMNS = [
     title: "Company",
     links: [
       { label: "How it Works", href: "/how-it-works" },
-      { label: "Plans", href: "/plans" },
+      { label: "How Pricing Works", href: "/plans" },
       { label: "For Trainers", href: "/for-trainers" },
       { label: "Login", href: "/login" },
     ],
@@ -26,10 +26,10 @@ const FOOTER_COLUMNS = [
   {
     title: "Get started",
     links: [
-      { label: "Book a Trial", href: "/book" },
+      { label: "Find a Trainer", href: "/trainers" },
+      { label: "Book a Session", href: "/book" },
       { label: "My Sessions", href: "/sessions" },
-      { label: `4-Session Trial — ${TRIAL.price}`, href: "/plans" },
-      { label: `Monthly Plan — ${MONTHLY_PLAN.price}/${MONTHLY_PLAN.period}`, href: "/plans" },
+      { label: "Trainer Dashboard", href: "/trainer" },
     ],
   },
 ];
@@ -47,7 +47,8 @@ export function Footer() {
               matched to nearby, verified trainers.
             </p>
             <p className="t-caption text-ivory-50/55">
-              aramya.co · Sessions must be booked 24 hours in advance or more.
+              aramya.co · Trainers set their own prices. Payment is arranged directly with your
+              trainer.
             </p>
           </div>
 
@@ -78,8 +79,8 @@ export function Footer() {
             does not constitute medical treatment.
           </p>
           <p className="t-caption pt-2 text-ivory-50/45">
-            4-Session Trial {TRIAL.price} (regular {TRIAL.regularPrice}) · Monthly Plan{" "}
-            {MONTHLY_PLAN.price} / {MONTHLY_PLAN.period}
+            Trainers set their own prices and availability. Sessions are booked inside the
+            trainer&apos;s published availability.
           </p>
         </div>
       </Container>
