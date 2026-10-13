@@ -1,0 +1,26 @@
+# ARAMYA local development database — PostgreSQL.
+# Usage: docker compose up -d   (then npm run db:migrate)
+#
+# Development only. Production should use a managed Postgres (see docs/ENVIRONMENT.md).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aramya-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aramya
+      POSTGRES_PASSWORD: aramya
+      POSTGRES_DB: aramya_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - aramya-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aramya -d aramya_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  aramya-postgres-data:
