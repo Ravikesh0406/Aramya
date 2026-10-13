@@ -48,6 +48,10 @@ discover, compare and book them — in person or online.
 - [x] Accept / decline / 24h expire transitions
 - [x] Duplicate-submit protection (client + server + partial unique index)
 - [x] Zoom link revealed only to that booking's customer and trainer, only when `Confirmed`
+- [x] Reschedule proposals for targeted bookings (weekday + start time)
+- [x] Session lifecycle in the UI (start / complete / no-show, customer confirm)
+- [x] Customer reviews from the sessions dashboard
+- [x] "Notify me when you're in my area" form
 - [x] `BOOKING_PAYMENTS_ENABLED` handling (payment arranged directly with the trainer)
 
 ## M6 — Admin, trust and subscriptions
@@ -63,6 +67,7 @@ discover, compare and book them — in person or online.
 
 ## M8 — Verification
 - [x] `npm run lint` — 0 errors
-- [x] `DATABASE_URL_TEST=... npm test` — 46 tests passing
+- [x] `DATABASE_URL_TEST=... npm test` — 51 tests passing
 - [x] `npm run build` — passing
-- [x] `bash scripts/smoke-test.sh` — 13-step marketplace smoke test passing
+- [x] `bash scripts/smoke-test.sh` — 15 checks passing
+- [x] `bash scripts/smoke-lifecycle.sh` — 12 checks passing (lifecycle, reviews, reschedule)

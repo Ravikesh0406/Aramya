@@ -65,6 +65,7 @@ Last updated: Round 3 (marketplace) — see `TODO.md` for the task-level checkli
 | Reusable trainer card (initials on Sand, real price, rating with count) | ✅ |
 | `/services/[slug]` lists trainers in that specialization | ✅ |
 | Sitemap + robots include listed trainers only | ✅ |
+| "Notify me when you're in my area" form (rate-limited, consent line) | ✅ |
 
 ## Phase 5 — Booking ✅
 
@@ -79,6 +80,7 @@ Last updated: Round 3 (marketplace) — see `TODO.md` for the task-level checkli
 | `Declined` status added to types, badges and Design System §13 | ✅ |
 | Targeted requests invisible to other trainers | ✅ |
 | Zoom link revealed only to that booking's customer + trainer, only when `Confirmed` | ✅ |
+| Reschedule for targeted bookings (weekday + start time, availability-checked) | ✅ |
 | `BOOKING_PAYMENTS_ENABLED=false` → "payment arranged directly with your trainer" | ✅ |
 | Legacy open-request flow still works (not promoted in the new UI) | ✅ |
 
@@ -107,14 +109,28 @@ Last updated: Round 3 (marketplace) — see `TODO.md` for the task-level checkli
 | Design System v1.3 note (marketplace positioning, `Declined`) | ✅ |
 | New `README.md`, `docs/ENVIRONMENT.md`, `.env.example` | ✅ |
 
+## Phase 5b — Session lifecycle, reviews & reschedule ✅
+
+| Item | State |
+|---|---|
+| Trainer lifecycle: start → in progress, mark completed, no-show (`POST /api/bookings/[id]/session`) | ✅ |
+| Customer confirms a delivered session (`POST /api/bookings/[id]/confirm`) | ✅ |
+| Customer review form on completed sessions (one review per booking) | ✅ |
+| Reschedule proposals for targeted bookings, validated against availability + clashes | ✅ |
+| Accepted reschedule applies the new start/end time (end derived from duration) | ✅ |
+| Legacy four-day reschedule shape still works | ✅ |
+| "Notify me when you're in my area" UI on `/trainers` | ✅ |
+
 ## Phase 8 — Verification ✅
 
 | Check | Result |
 |---|---|
-| `npm run lint` | ✅ 0 errors (5 warnings) |
-| `DATABASE_URL_TEST=... npm test` | ✅ 46 tests / 5 suites passing |
-| `npm run build` | ✅ passing |
-| `bash scripts/smoke-test.sh` | ✅ 13-step marketplace smoke test passing |
+| `npm run lint` | ✅ 0 errors (9 warnings) |
+| `DATABASE_URL_TEST=... npm test` | ✅ 51 tests / 6 suites passing |
+| `npm run build` | ✅ passing (63 routes) |
+| `bash scripts/smoke-test.sh` | ✅ 15 checks passing |
+| `bash scripts/smoke-lifecycle.sh` | ✅ 12 checks passing (lifecycle, reviews, reschedule, area interest) |
+| Test-database guards | ✅ refuses when `DATABASE_URL_TEST` is unset or points at the dev DB |
 | Admin console (stats, verify, categories, pricing limits, plans, reports) | ✅ verified live |
 | Mobile/desktop widths | ⬜ no browser in this environment — manual check required |
 
@@ -132,6 +148,11 @@ Last updated: Round 3 (marketplace) — see `TODO.md` for the task-level checkli
 | Listing fee amount/term (if `LISTING_FEE_REQUIRED=true`) | No plan is seeded by design. |
 | GST treatment of the listing fee | Accounting decision; no invoicing built. |
 | Privacy Policy update for location collection | Legal copy, outside code. |
+
+### Done since the first report
+- Session lifecycle (start / complete / no-show) with trainer + customer actions
+- Customer reviews from the sessions dashboard (one per completed booking)
+- Reschedule for targeted bookings, and the "notify me in my area" form
 
 ### Built but disabled / dormant
 - `BOOKING_PAYMENTS_ENABLED=true` restores Razorpay booking payments. **Note:** this
@@ -156,6 +177,5 @@ Last updated: Round 3 (marketplace) — see `TODO.md` for the task-level checkli
 ### Known limitations to keep in mind
 - `searchTrainers` loads all listed trainers and their aggregates, then filters in JS.
   Fine at marketplace scale; add SQL-side filtering before tens of thousands of trainers.
-- Session status transitions (start/complete/no-show/confirm) are not exposed in the new
-  UI; existing endpoints and data still work.
+
 - Password reset is explicitly out of scope (R8).

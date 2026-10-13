@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Container, Overline, ButtonLink, StatusBadge } from "@/components/ui";
+import { Button, Container, Overline, ButtonLink, StatusBadge } from "@/components/ui";
 import { SessionCard } from "@/components/cards";
 import { DAYS, TIME_OPTIONS } from "@/lib/data";
 import { CalendarIcon, ClockIcon, CheckIcon } from "@/components/Icons";
+type CustomerBooking = BookingRequest & { meetingUrl?: string | null };
+
 import {
   useBookings,
   cancelBooking,
+  confirmBooking,
+  leaveReview,
   requestReschedule,
+  rescheduleTargeted,
   type BookingRequest,
   type BookingStatus,
 } from "@/lib/bookings";
@@ -64,10 +69,34 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
+const WEEKDAYS = [
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+  { value: 0, label: "Sunday" },
+];
+
+const DAY_NUMBER: Record<string, number> = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+
 function RescheduleRequestModal({ booking, onClose, onSubmitted }: { booking: BookingRequest; onClose: () => void; onSubmitted: () => void }) {
-  const [selectedDays, setSelectedDays] = useState(booking.days);
+  const targeted = booking.requestKind === "targeted";
+  const [selectedDays, setSelectedDays] = useState<string[]>(booking.days);
   const [selectedTime, setSelectedTime] = useState(booking.time);
   const [specificTime, setSpecificTime] = useState(booking.specificTime);
+  const [weekdays, setWeekdays] = useState<number[]>(() =>
+    booking.days.map((day) => DAY_NUMBER[day]).filter((value) => typeof value === "number"),
+  );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -78,16 +107,24 @@ function RescheduleRequestModal({ booking, onClose, onSubmitted }: { booking: Bo
   }
 
   async function submit() {
-    if (selectedDays.length !== 4 || (selectedTime === "Specific time" && !specificTime)) {
-      setError("Select four preferred days and a valid time window.");
-      return;
-    }
     try {
       setLoading(true);
-      await requestReschedule(booking.id, selectedDays, selectedTime, specificTime);
+      if (targeted) {
+        if (weekdays.length === 0 || !specificTime) {
+          setError("Choose at least one day and a start time.");
+          return;
+        }
+        await rescheduleTargeted(booking.id, { weekdays, startTime: specificTime });
+      } else {
+        if (selectedDays.length !== 4 || (selectedTime === "Specific time" && !specificTime)) {
+          setError("Select four preferred days and a valid time window.");
+          return;
+        }
+        await requestReschedule(booking.id, selectedDays, selectedTime, specificTime);
+      }
       onSubmitted();
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Unable to request a change.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to request a change.");
     } finally {
       setLoading(false);
     }
@@ -104,42 +141,69 @@ function RescheduleRequestModal({ booking, onClose, onSubmitted }: { booking: Bo
           <button type="button" onClick={onClose} aria-label="Close" className="text-muted-600 transition duration-200 ease-out hover:text-forest-900">×</button>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {DAYS.map((day) => {
-            const selected = selectedDays.includes(day);
-            return (
+        {targeted ? (
+          <div className="mt-5 flex flex-wrap gap-2">
+            {WEEKDAYS.map((day) => {
+              const selected = weekdays.includes(day.value);
+              return (
+                <button
+                  key={day.value}
+                  type="button"
+                  onClick={() =>
+                    setWeekdays((current) =>
+                      current.includes(day.value) ? current.filter((value) => value !== day.value) : [...current, day.value],
+                    )
+                  }
+                  aria-pressed={selected}
+                  className={`rounded-[10px] border px-3 py-2.5 text-body-sm font-semibold transition duration-200 ease-out ${
+                    selected ? "border-forest-900 bg-forest-900 text-white" : "border-forest-900/15 bg-white text-charcoal-900 hover:border-forest-900/40"
+                  }`}
+                >
+                  {day.label.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {DAYS.map((day) => {
+              const selected = selectedDays.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleDay(day)}
+                  aria-pressed={selected}
+                  className={`rounded-[10px] border px-3 py-2.5 text-body-sm font-semibold transition duration-200 ease-out ${
+                    selected ? "border-forest-900 bg-forest-900 text-white" : "border-forest-900/15 bg-white text-charcoal-900 hover:border-forest-900/40"
+                  }`}
+                >
+                  {day.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {!targeted ? (
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {TIME_OPTIONS.map((option) => (
               <button
-                key={day}
+                key={option}
                 type="button"
-                onClick={() => toggleDay(day)}
-                aria-pressed={selected}
+                onClick={() => setSelectedTime(option)}
+                aria-pressed={selectedTime === option}
                 className={`rounded-[10px] border px-3 py-2.5 text-body-sm font-semibold transition duration-200 ease-out ${
-                  selected ? "border-forest-900 bg-forest-900 text-white" : "border-forest-900/15 bg-white text-charcoal-900 hover:border-forest-900/40"
+                  selectedTime === option ? "border-forest-900 bg-forest-900 text-white" : "border-forest-900/15 bg-white text-charcoal-900 hover:border-forest-900/40"
                 }`}
               >
-                {day.slice(0, 3)}
+                {option}
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : null}
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {TIME_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setSelectedTime(option)}
-              aria-pressed={selectedTime === option}
-              className={`rounded-[10px] border px-3 py-2.5 text-body-sm font-semibold transition duration-200 ease-out ${
-                selectedTime === option ? "border-forest-900 bg-forest-900 text-white" : "border-forest-900/15 bg-white text-charcoal-900 hover:border-forest-900/40"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-
-        {selectedTime === "Specific time" ? (
+        {targeted || selectedTime === "Specific time" ? (
           <label className="mt-4 flex flex-col gap-2">
             <span className="t-overline text-muted-600">Specific time</span>
             <input
@@ -169,11 +233,93 @@ function RescheduleRequestModal({ booking, onClose, onSubmitted }: { booking: Bo
   );
 }
 
+function ReviewCard({ booking }: { booking: BookingRequest }) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  async function submit() {
+    setStatus("saving");
+    setMessage("");
+    try {
+      await leaveReview({ bookingId: booking.id, rating, comment });
+      setStatus("saved");
+      setMessage("Thanks — your review is on the trainer's profile.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Could not save your review.");
+    }
+  }
+
+  if (status === "saved") {
+    return <p className="text-body-sm text-success">{message}</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-forest-900/10 bg-ivory-50 p-4">
+      <p className="t-overline text-terracotta-500">How was your session?</p>
+      <div className="flex flex-wrap gap-2">
+        {[1, 2, 3, 4, 5].map((value) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={rating === value}
+            onClick={() => setRating(value)}
+            className={`h-10 w-10 rounded-[10px] border text-body-sm font-semibold transition duration-200 ease-out ${
+              rating === value
+                ? "border-forest-900 bg-forest-900 text-white"
+                : "border-forest-900/15 bg-white text-charcoal-900 hover:border-forest-900/40"
+            }`}
+          >
+            {value}
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(event) => setComment(event.target.value)}
+        rows={3}
+        maxLength={1000}
+        placeholder="Optional: what worked well?"
+        className="rounded-[10px] border border-forest-900/15 bg-white px-3 py-2 text-body-sm text-charcoal-900 focus:border-forest-900 focus:outline-none"
+      />
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => void submit()}
+          disabled={rating === 0 || status === "saving"}
+          className="inline-flex h-11 items-center justify-center rounded-[10px] bg-forest-900 px-5 text-body-sm font-semibold text-white transition duration-200 ease-out hover:bg-forest-800 disabled:opacity-50"
+        >
+          {status === "saving" ? "Saving..." : "Send review"}
+        </button>
+        {message ? <p className={`text-body-sm ${status === "error" ? "text-error" : "text-success"}`}>{message}</p> : null}
+      </div>
+    </div>
+  );
+}
+
 export function SessionsDashboard() {
   const { user, loading: authLoading } = useCurrentUser();
   const { bookings, loading: bookingsLoading } = useBookings();
   const [rescheduleTarget, setRescheduleTarget] = useState<BookingRequest | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState("");
   const currentBooking = bookings[bookings.length - 1];
+
+  async function confirm(id: string) {
+    setConfirmingId(id);
+    setActionMessage("");
+    try {
+      await confirmBooking(id);
+      setActionMessage("Session confirmed as completed. You can now leave a review.");
+      window.dispatchEvent(new Event("aramya:bookingsChanged"));
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Could not confirm the session.");
+    } finally {
+      setConfirmingId(null);
+    }
+  }
 
   if (authLoading || bookingsLoading) {
     return (
@@ -241,7 +387,18 @@ export function SessionsDashboard() {
       ),
     );
 
-  const accepted = bookings.filter((booking) => booking.status === "Confirmed");
+  const accepted = bookings.filter(
+    (booking) => booking.status === "Confirmed" || booking.status === "In Progress" || booking.status === "Upcoming",
+  );
+  const completed = bookings
+    .map((booking) => booking as CustomerBooking)
+    .filter(
+    (booking) =>
+      booking.status === "Completed" ||
+      booking.status === "In Progress" ||
+      booking.status === "No Show" ||
+      (booking.status === "Confirmed" && booking.requestKind === "targeted"),
+  );
 
   return (
     <>
@@ -312,6 +469,8 @@ export function SessionsDashboard() {
                 </span>
               </div>
 
+              {actionMessage ? <p className="text-body-sm text-success">{actionMessage}</p> : null}
+
               {sessions.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {sessions.map(({ key, ...sessionProps }) => (
@@ -336,6 +495,56 @@ export function SessionsDashboard() {
                   <div className="pt-5">
                     <ButtonLink href="/trainers">Find a trainer</ButtonLink>
                   </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <h2 className="t-h3 text-charcoal-900">Completed sessions</h2>
+              {completed.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-forest-900/15 bg-white p-6 text-body-sm text-muted-600 shadow-sm">
+                  Nothing completed yet. Once a session is finished you can confirm it here and leave
+                  a review for your trainer.
+                </p>
+              ) : (
+                <div className="grid gap-4">
+                  {completed.map((booking) => (
+                    <article key={booking.id} className="flex flex-col gap-3 rounded-xl border border-forest-900/8 bg-white p-5 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h3 className="t-h4 text-charcoal-900">{booking.serviceName}</h3>
+                          <p className="pt-0.5 text-body-sm text-muted-600">
+                            with {booking.trainerName ?? "your trainer"} · {booking.days.join(", ")}
+                            {booking.startTime ? ` · ${booking.startTime} IST` : ""}
+                          </p>
+                        </div>
+                        <StatusBadge status={booking.status} />
+                      </div>
+                      {booking.format === "online" && booking.meetingUrl ? (
+                        <a
+                          href={booking.meetingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-fit text-body-sm font-semibold text-forest-900 underline"
+                        >
+                          Join session
+                        </a>
+                      ) : null}
+                      {booking.status === "Confirmed" || booking.status === "In Progress" ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            onClick={() => void confirm(booking.id)}
+                            disabled={confirmingId === booking.id}
+                          >
+                            {confirmingId === booking.id ? "Confirming..." : "Confirm this session happened"}
+                          </Button>
+                        </div>
+                      ) : null}
+                      {booking.status === "Completed" ? (
+                        <ReviewCard booking={booking} />
+                      ) : null}
+                    </article>
+                  ))}
                 </div>
               )}
             </div>

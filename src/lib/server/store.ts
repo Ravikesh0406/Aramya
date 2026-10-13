@@ -13,6 +13,7 @@ import {
   transaction,
 } from "@/lib/server/db";
 import { createTrainerProfileForUser } from "@/lib/server/trainers";
+import { toMinutes } from "@/lib/validation";
 import type {
   BookingInput,
   BookingRequest,
@@ -377,14 +378,35 @@ export async function acceptReschedule(id: string): Promise<BookingRequest | nul
     const proposedTime = row.proposed_time;
     if (!proposedDays || !proposedTime) return null;
 
+    // Targeted bookings carry a concrete start time; recompute the end time from
+    // the stored duration so the schedule stays consistent.
+    const proposedSpecific = row.proposed_specific_time ?? "";
+    const durationMin = row.duration_min ?? 60;
+    const startMinutes = proposedSpecific ? toMinutes(proposedSpecific) : null;
+    const endTime =
+      startMinutes !== null
+        ? (() => {
+            const end = startMinutes + durationMin;
+            return `${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`;
+          })()
+        : null;
+
     const updated = await client.query<BookingRow>(
       `UPDATE bookings
           SET status = 'Rescheduled', days = $1, time = $2, specific_time = $3,
+              start_time = COALESCE($4, start_time), end_time = COALESCE($5, end_time),
               proposed_days = NULL, proposed_time = NULL, proposed_specific_time = NULL,
               proposed_by = NULL, updated_at = now()
-        WHERE id = $4
+        WHERE id = $6
         RETURNING *`,
-      [JSON.stringify(proposedDays), proposedTime, row.proposed_specific_time ?? "", id],
+      [
+        JSON.stringify(proposedDays),
+        proposedTime,
+        proposedSpecific,
+        startMinutes !== null ? proposedSpecific : null,
+        endTime,
+        id,
+      ],
     );
     const next = updated.rows[0];
     return next ? toPublicBooking(next as BookingRow) : null;

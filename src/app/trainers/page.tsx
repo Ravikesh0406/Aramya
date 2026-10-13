@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { Container, Overline, SectionHeading } from "@/components/ui";
 import { TrainerMarketCard } from "@/components/TrainerMarketCard";
 import { TrainerFilters } from "@/components/TrainerFilters";
+import { AreaInterestForm } from "@/components/AreaInterestForm";
 import { searchTrainers, type SearchQuery, type TimeWindowKey } from "@/lib/server/search";
 import { listCategories } from "@/lib/server/trainers";
 import { TIME_WINDOWS } from "@/lib/server/search";
@@ -124,10 +125,17 @@ export default async function TrainersPage(props: PageProps<"/trainers">) {
                 ))}
               </div>
             ) : (
-              <EmptyState
-                title="No in-person trainers here yet"
-                body="Try a nearby area or PIN code, or train online with a trainer below."
-              />
+              <div className="flex flex-col gap-4">
+                <EmptyState
+                  title="No in-person trainers here yet"
+                  body="Try a nearby area or PIN code, or train online with a trainer below."
+                />
+                {hasLocation ? (
+                  <div className="max-w-xl">
+                    <AreaInterestForm />
+                  </div>
+                ) : null}
+              </div>
             )}
           </section>
 

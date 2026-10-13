@@ -12,6 +12,7 @@ import { CalendarIcon, ClockIcon, MapPinIcon } from "@/components/Icons";
 import {
   acceptRequest,
   declineRequest,
+  setSessionState,
   fetchRequests,
   fetchSubscription,
   fetchTrainerProfile,
@@ -112,6 +113,27 @@ export function TrainerDashboard() {
         </Container>
       </section>
     );
+  }
+
+  async function updateSession(id: string, action: "start" | "complete" | "noshow") {
+    setBusyId(id);
+    setError("");
+    setNotice("");
+    try {
+      await setSessionState(id, action);
+      await refresh();
+      setNotice(
+        action === "start"
+          ? "Session started."
+          : action === "complete"
+            ? "Session marked completed — the customer can now review you."
+            : "Marked as a no-show.",
+      );
+    } catch (sessionError) {
+      setError(sessionError instanceof Error ? sessionError.message : "Could not update the session.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function answer(id: string, action: "accept" | "decline") {
@@ -257,6 +279,7 @@ export function TrainerDashboard() {
                   busy={busyId === booking.id}
                   onAccept={() => void answer(booking.id, "accept")}
                   onDecline={() => void answer(booking.id, "decline")}
+                  onSessionState={() => {}}
                 />
               ))}
             </div>
@@ -265,7 +288,15 @@ export function TrainerDashboard() {
           {grouped.upcoming.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2">
               {grouped.upcoming.map((booking) => (
-                <RequestCard key={booking.id} booking={booking} busy={false} onAccept={() => {}} onDecline={() => {}} confirmed />
+                <RequestCard
+                  key={booking.id}
+                  booking={booking}
+                  busy={busyId === booking.id}
+                  onAccept={() => {}}
+                  onDecline={() => {}}
+                  onSessionState={(action) => void updateSession(booking.id, action)}
+                  confirmed
+                />
               ))}
             </div>
           ) : null}
@@ -400,12 +431,14 @@ function RequestCard({
   busy,
   onAccept,
   onDecline,
+  onSessionState,
   confirmed = false,
 }: {
   booking: TrainerBooking;
   busy: boolean;
   onAccept: () => void;
   onDecline: () => void;
+  onSessionState: (action: "start" | "complete" | "noshow") => void;
   confirmed?: boolean;
 }) {
   const slotLabel =
@@ -477,7 +510,25 @@ function RequestCard({
             Decline
           </Button>
         </div>
-      ) : null}
+      ) : (
+        <div className="flex flex-wrap gap-2 border-t border-forest-900/8 pt-3">
+          {booking.status === "Confirmed" || booking.status === "Rescheduled" || booking.status === "Upcoming" ? (
+            <Button variant="secondary" size="sm" onClick={() => void onSessionState("start")} disabled={busy}>
+              Start session
+            </Button>
+          ) : null}
+          {booking.status === "In Progress" || booking.status === "Upcoming" ? (
+            <Button size="sm" onClick={() => void onSessionState("complete")} disabled={busy}>
+              Mark completed
+            </Button>
+          ) : null}
+          {booking.status === "Confirmed" || booking.status === "Rescheduled" || booking.status === "In Progress" || booking.status === "Upcoming" ? (
+            <Button variant="ghost" size="sm" onClick={() => void onSessionState("noshow")} disabled={busy}>
+              No show
+            </Button>
+          ) : null}
+        </div>
+      )}
     </article>
   );
 }

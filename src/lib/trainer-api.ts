@@ -144,6 +144,10 @@ export async function fetchRequests() {
   }>("/api/trainer/requests");
 }
 
+export async function setSessionState(id: string, action: "start" | "complete" | "noshow") {
+  return request<{ booking: unknown; message: string }>(`/api/bookings/${id}/session`, "POST", { action });
+}
+
 export async function declineRequest(id: string) {
   return request<{ booking: unknown }>(`/api/bookings/${id}/decline`, "POST");
 }

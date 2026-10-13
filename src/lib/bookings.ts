@@ -57,6 +57,38 @@ export async function declineReschedule(id: string) {
   return requestBooking(`/api/bookings/${id}/reschedule/decline`, "POST");
 }
 
+export async function rescheduleTargeted(
+  id: string,
+  proposal: { weekdays: number[]; startTime: string },
+) {
+  return requestBooking(`/api/bookings/${id}/reschedule`, "POST", proposal);
+}
+
+export async function confirmBooking(id: string) {
+  return requestBooking(`/api/bookings/${id}/confirm`, "POST");
+}
+
+export async function setSessionState(id: string, action: "start" | "complete" | "noshow") {
+  return requestBooking(`/api/bookings/${id}/session`, "POST", { action });
+}
+
+export async function leaveReview(input: {
+  bookingId: string;
+  rating: number;
+  comment: string;
+}) {
+  const headers = new Headers({ "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" });
+  const response = await fetch("/api/reviews", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(input),
+  });
+  const data = (await response.json()) as { review?: unknown; error?: string };
+  if (!response.ok) throw new Error(data.error ?? "Could not save your review.");
+  notify();
+  return data.review;
+}
+
 export function useBookings() {
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
