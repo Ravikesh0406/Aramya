@@ -1,4 +1,4 @@
-import { createBookingForCustomer, listVisibleBookings } from "@/lib/server/store";
+import { createBookingForCustomer, listVisibleBookings, resolveBookingMeetingUrl, expireStaleRequests } from "@/lib/server/store";
 import { getCurrentUser } from "@/lib/server/session";
 import { SERVICES } from "@/lib/data";
 import { nextDateForDay } from "@/lib/dates";
@@ -10,8 +10,18 @@ export async function GET(request: Request) {
   if (!user) {
     return Response.json({ error: "Sign in to view your bookings." }, { status: 401 });
   }
-  const bookings = listVisibleBookings(user);
-  return Response.json({ bookings });
+  // Opportunistically expire unanswered requests; nothing schedules it in v1.
+  void expireStaleRequests();
+  const bookings = await listVisibleBookings(user);
+  // Private Zoom links are only visible to the customer of a confirmed online booking.
+  const withLinks = await Promise.all(
+    bookings.map(async (booking) =>
+      booking.format === "online" && booking.status === "Confirmed"
+        ? { ...booking, meetingUrl: await resolveBookingMeetingUrl(booking.id) }
+        : booking,
+    ),
+  );
+  return Response.json({ bookings: withLinks });
 }
 
 export async function POST(request: Request) {
@@ -73,14 +83,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const booking = createBookingForCustomer(user.id, {
-    location: input.location.trim(),
-    serviceSlug: validService.slug,
-    serviceName: validService.name,
-    days: uniqueDays,
-    time: input.time,
-    specificTime: typeof input.specificTime === "string" ? input.specificTime : "",
-  });
+  const booking = await createBookingForCustomer(
+    user.id,
+    {
+      location: input.location.trim(),
+      serviceSlug: validService.slug,
+      serviceName: validService.name,
+      days: uniqueDays,
+      time: input.time,
+      specificTime: typeof input.specificTime === "string" ? input.specificTime : "",
+    },
+    { requestKind: "open" },
+  );
 
   return Response.json({ booking }, { status: 201 });
 }

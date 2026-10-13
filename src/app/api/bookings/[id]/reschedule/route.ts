@@ -28,11 +28,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  if (getBookingCustomerId(id) !== user.id) {
+  if ((await getBookingCustomerId(id)) !== user.id) {
     return Response.json({ error: "You can only change your own booking." }, { status: 403 });
   }
 
-  const booking = requestReschedule(id, {
+  const booking = await requestReschedule(id, {
     days,
     time: input.time,
     specificTime: typeof input.specificTime === "string" ? input.specificTime : "",

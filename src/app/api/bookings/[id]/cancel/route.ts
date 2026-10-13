@@ -12,10 +12,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  if (getBookingCustomerId(id) !== user.id) {
+  if ((await getBookingCustomerId(id)) !== user.id) {
     return Response.json({ error: "You can only cancel your own request." }, { status: 403 });
   }
-  const booking = cancelBooking(id);
+  const booking = await cancelBooking(id);
   if (!booking) {
     return Response.json({ error: "Booking not found." }, { status: 404 });
   }

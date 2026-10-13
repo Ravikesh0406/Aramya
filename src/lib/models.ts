@@ -5,6 +5,8 @@ export type UserProfile = {
   name: string;
   contact: string;
   role: UserRole;
+  email?: string | null;
+  verified?: boolean;
 };
 
 export type BookingStatus =
@@ -15,11 +17,14 @@ export type BookingStatus =
   | "In Progress"
   | "Completed"
   | "Cancelled"
+  | "Declined"
   | "Reschedule Requested"
   | "Rescheduled"
   | "No Show"
   | "Expired"
   | "Disputed";
+
+export type BookingFormat = "home_visit" | "online";
 
 export type BookingRequest = {
   id: string;
@@ -33,6 +38,15 @@ export type BookingRequest = {
   specificTime: string;
   status: BookingStatus;
   trainerName: string | null;
+  trainerId: string | null;
+  offeringId: string | null;
+  pricePaise: number | null;
+  durationMin: number | null;
+  packageSessions: number | null;
+  format: BookingFormat | null;
+  startTime: string | null;
+  endTime: string | null;
+  requestKind: "open" | "targeted";
   proposedDays: string[] | null;
   proposedTime: string | null;
   proposedSpecificTime: string | null;
@@ -42,5 +56,23 @@ export type BookingRequest = {
 
 export type BookingInput = Omit<
   BookingRequest,
-  "id" | "reference" | "createdAt" | "status" | "trainerName" | "proposedDays" | "proposedTime" | "proposedSpecificTime" | "proposedBy" | "updatedAt"
+  | "id"
+  | "reference"
+  | "createdAt"
+  | "status"
+  | "trainerName"
+  | "trainerId"
+  | "offeringId"
+  | "pricePaise"
+  | "durationMin"
+  | "packageSessions"
+  | "format"
+  | "startTime"
+  | "endTime"
+  | "requestKind"
+  | "proposedDays"
+  | "proposedTime"
+  | "proposedSpecificTime"
+  | "proposedBy"
+  | "updatedAt"
 >;

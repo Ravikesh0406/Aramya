@@ -1,40 +1,84 @@
-# Aramya
+# ARAMYA
 
-aramya — a home fitness & wellness platform connecting people with professional trainers for one-on-one sessions at home. Think Urban Company, but for fitness.
+A location-based **trainer marketplace** for fitness and wellness. Trainers create
+profiles, set their own prices within sanity bounds, publish when they are available,
+and customers discover, compare and book them — in person at home or online.
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+- Customers search by area, specialization, price, experience and availability, then
+  send a **targeted booking request** to the trainer of their choice.
+- Trainers set their own prices (no commission, nothing added on top) and accept or
+  decline requests. Payment for sessions is arranged directly with the trainer.
+- Trainer listing is free by default; an optional listing subscription can be switched
+  on (`LISTING_FEE_REQUIRED`).
 
-## Getting Started
+## Stack
 
-First, run the development server:
+- Next.js 16 (App Router, Turbopack), React 19, TypeScript, Tailwind v4
+- PostgreSQL via the `pg` driver — no ORM, raw parameterised SQL
+- Vitest for tests; migrations are versioned SQL files in `migrations/`
+- Razorpay (MOCK mode when keys are absent) for listing subscriptions
+
+## Getting started
 
 ```bash
+npm install
+cp .env.example .env.local       # edit if needed
+docker compose up -d             # local PostgreSQL
+npm run db:migrate               # create/upgrade the schema
+npm run db:seed                  # optional: fake sample trainers
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open <http://localhost:3000>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | Purpose |
+|---|---|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest (requires `DATABASE_URL_TEST`) |
+| `npm run db:migrate` | Apply pending SQL migrations |
+| `npm run db:import` | One-time import from a legacy SQLite database |
+| `npm run db:seed` | Insert clearly-fake sample trainers (dev databases only) |
 
-## Learn More
+## Project layout
 
-To learn more about Next.js, take a look at the following resources:
+```
+migrations/             versioned SQL migrations (0001 = base schema, 0002 = marketplace)
+scripts/                db migrate/import/seed, smoke test
+src/app/                App Router pages + route handlers
+  api/                  JSON endpoints (bookings, trainer workspace, admin)
+  trainers/             public search + profile pages
+  trainer/              trainer dashboard + onboarding
+  admin/                admin console
+src/lib/server/         data layer: db, store, trainers, search, booking, pricing,
+                        subscriptions, reviews, reports, storage, admin, rate-limit
+src/lib/                shared client code, models, validation
+src/components/         UI components (Design System v1.3)
+tests/                  Vitest suites (Postgres test database)
+docs/ENVIRONMENT.md     every environment variable
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Testing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Tests that touch the database use a **separate** Postgres database:
 
-## Deploy on Vercel
+```bash
+createdb aramya_test || docker exec aramya-postgres psql -U aramya -d postgres -c "CREATE DATABASE aramya_test"
+export DATABASE_URL_TEST=postgres://aramya:aramya@localhost:5432/aramya_test
+npm test
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The suite refuses to run if `DATABASE_URL_TEST` is unset or does not point at a
+`*_test` database.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Data and privacy
+
+- Trainer home coordinates are private; the public profile shows only city/locality and
+  a coarse distance computed server-side.
+- Public trainer payloads go through an explicit allow-list (no contact, coordinates,
+  meeting links, certification documents or verification notes).
+- Certification documents live in private storage and are served only to the owning
+  trainer or an admin.
