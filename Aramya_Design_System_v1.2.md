@@ -545,3 +545,56 @@ The user should immediately understand:
 **What ARAMYA is → what services are available → what the trial costs → how matching works → how to book → what the monthly plan costs.**
 
 The visual hierarchy must make **₹4,500/month** the primary monthly pricing message, while **16 private at-home sessions** remains a supporting inclusion.
+
+---
+
+# v1.3 NOTE — Marketplace positioning (Round 3)
+
+ARAMYA is now a **trainer marketplace**, not a fixed-price managed service. The rules
+below supersede the pricing and matching sections of v1.2 where they conflict.
+
+## Positioning
+
+- Customers **choose a trainer**, then an offering, then days and a start time. Aramya
+  does not match customers to trainers silently.
+- Every trainer sets their own price. Aramya enforces only sanity bounds (admin
+  configured, per 60 minutes) and never sets or displays a global price.
+- Trainers publish availability as time ranges per weekday (IST, 15-minute steps).
+  Customers book inside those ranges.
+- Payment for sessions is arranged **directly** between customer and trainer. Nothing is
+  added on top of the trainer's price.
+- Trainer listing is free unless the listing fee is enabled; then an admin-created plan
+  applies. No fee amount is ever hardcoded in the UI.
+
+## Session statuses (updated §13)
+
+Requested, Accepted, Confirmed, Upcoming, In Progress, Completed, Cancelled,
+**Declined**, Reschedule Requested, Rescheduled, No Show, Expired, Disputed.
+
+- `Declined` is a terminal state for a targeted request the trainer answered "no".
+- A targeted request becomes `Expired` after 24 hours without an answer.
+- A booking is `Confirmed` only after the trainer accepts.
+- Targeted requests are visible only to the targeted trainer, not to other trainers.
+
+## Components
+
+- `TrainerMarketCard` replaces generic trainer cards in discovery: photo (initials on a
+  Sand surface when none — never stock photography), name, primary specialization, years
+  of experience, locality, formats (In person / Online (Zoom)), "from ₹X per Y-min
+  session" derived from real offerings, `Verified` badge only for verified trainers,
+  rating with its count only when reviews exist.
+- `TrialCard` and `PlanCard` are removed: there is no trial and no monthly plan.
+- Ratings are always shown with their review count; never show stars for zero reviews.
+
+## Privacy rules
+
+- Never public: trainer exact coordinates, street address, contact, meeting links,
+  certification documents, verification notes.
+- Public trainer pages show city/locality and a coarse distance ("about 3 km") computed
+  server-side.
+
+## Removed / deprecated copy
+
+- "Book a Trial", "4-Session Trial", "Monthly Plan", "₹4,500/month", "We match you",
+  "Managed marketplace" and every fixed price are removed from production paths.
+- The primary CTA is **"Find a trainer"** (`/trainers`).

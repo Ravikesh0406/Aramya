@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import { Container, Overline, SectionHeading, ButtonLink, StatusBadge } from "@/components/ui";
 import { ClockIcon, CalendarIcon, ShieldIcon, CheckIcon } from "@/components/Icons";
-import { HOW_IT_WORKS, SESSION_STATUSES, TRIAL } from "@/lib/data";
+import { HOW_IT_WORKS, SESSION_STATUSES } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "How it Works",
@@ -14,7 +14,7 @@ const FLOW = [
   "Visitor",
   "Location",
   "Service",
-  "4-Session Trial",
+
   "Preferred Days",
   "Preferred Time",
   "Request",
@@ -111,16 +111,22 @@ export default function HowItWorksPage() {
               </li>
             ))}
           </ol>
-          <div className="flex flex-col gap-3 rounded-xl border border-forest-900/10 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 rounded-xl border border-forest-900/10 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="t-h4 text-charcoal-900">{TRIAL.name} — {TRIAL.price}</p>
+              <p className="t-h4 text-charcoal-900">Your trainer sets the price</p>
               <p className="pt-1 text-body-sm text-muted-600">
-                Regular displayed price {TRIAL.regularPrice} · four private at-home sessions
+                Choose the trainer you want, compare their prices, formats and availability — and
+                agree payment directly with them. ARAMYA does not set or add to their prices.
               </p>
             </div>
-            <ButtonLink href="/book" size="lg" className="shrink-0">
-              Book Your Trial
-            </ButtonLink>
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+              <ButtonLink href="/trainers" size="lg">
+                Find a trainer
+              </ButtonLink>
+              <ButtonLink href="/plans" size="lg" variant="secondary">
+                How pricing works
+              </ButtonLink>
+            </div>
           </div>
         </Container>
       </section>

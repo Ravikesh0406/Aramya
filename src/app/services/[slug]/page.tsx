@@ -3,9 +3,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container, Overline, ButtonLink, CheckList, SectionHeading } from "@/components/ui";
-import { ServiceCard, TrialCard } from "@/components/cards";
+import { ServiceCard } from "@/components/cards";
 import { SERVICE_ICONS } from "@/components/Icons";
-import { SERVICES, getService, HOW_IT_WORKS, TRIAL } from "@/lib/data";
+import { TrainerMarketCard } from "@/components/TrainerMarketCard";
+import { SERVICES, getService, HOW_IT_WORKS } from "@/lib/data";
+import { searchTrainersByCategory } from "@/lib/server/search";
 
 export function generateStaticParams() {
   return SERVICES.map((service) => ({ slug: service.slug }));
@@ -60,8 +62,8 @@ export default async function ServiceDetailPage(
           </div>
 
           <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-            <ButtonLink href={`/book?service=${service.slug}`} size="lg">
-              Book Your Trial
+            <ButtonLink href={`/trainers?category=${service.slug}`} size="lg">
+              Find a trainer
             </ButtonLink>
             <ButtonLink href="#included" size="lg" variant="secondary">
               What&apos;s included
@@ -109,11 +111,11 @@ export default async function ServiceDetailPage(
             </p>
             <CheckList items={service.included} />
             <div className="mt-6 border-t border-forest-900/8 pt-5">
-              <ButtonLink href={`/book?service=${service.slug}`} size="lg" className="w-full">
-                Book the 4-Session Trial
+              <ButtonLink href={`/trainers?category=${service.slug}`} size="lg" className="w-full">
+                Find a trainer
               </ButtonLink>
               <p className="t-caption pt-3 text-center text-muted-600">
-                {TRIAL.price} (regular {TRIAL.regularPrice}) · 24+ hours advance booking
+                Each trainer sets their own price · sessions booked 24+ hours in advance
               </p>
             </div>
           </div>
@@ -149,6 +151,9 @@ export default async function ServiceDetailPage(
         </Container>
       </section>
 
+      {/* Trainers in this specialization */}
+      <TrainerList slug={service.slug} />
+
       {/* Other services */}
       <section className="py-14 md:py-20">
         <Container className="flex flex-col gap-8">
@@ -159,10 +164,43 @@ export default async function ServiceDetailPage(
             ))}
           </div>
           <div className="flex justify-center">
-            <TrialCard className="w-full max-w-md" />
           </div>
         </Container>
       </section>
     </>
+  );
+}
+
+/** Trainers currently listed in this specialization (server-rendered). */
+async function TrainerList({ slug }: { slug: string }) {
+  const trainers = await searchTrainersByCategory(slug, 6);
+  return (
+    <section className="py-14 md:py-20">
+      <Container className="flex flex-col gap-8">
+        <SectionHeading
+          overline="Trainers"
+          title={trainers.length > 0 ? "Trainers available now" : "Trainers in this specialization"}
+          description={
+            trainers.length > 0
+              ? "Compare profiles, prices and availability, then send a booking request."
+              : "No trainers are listed here yet. Browse all trainers or try an online session."
+          }
+        />
+        {trainers.length > 0 ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {trainers.map((trainer) => (
+              <TrainerMarketCard key={trainer.slug} trainer={trainer} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            <ButtonLink href="/trainers">Find a trainer</ButtonLink>
+            <ButtonLink href="/trainers?format=online" variant="secondary">
+              Browse online trainers
+            </ButtonLink>
+          </div>
+        )}
+      </Container>
+    </section>
   );
 }

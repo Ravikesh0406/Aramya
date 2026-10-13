@@ -3,7 +3,6 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { MONTHLY_PLAN, TRIAL } from "@/lib/data";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -18,7 +17,7 @@ export const metadata: Metadata = {
     template: "%s — ARAMYA",
   },
   description:
-    `Managed marketplace for professional fitness and wellness training at home. Yoga, personal training, mobility and weight management with matched trainers. ${TRIAL.name} ${TRIAL.price}, ${MONTHLY_PLAN.name} ${MONTHLY_PLAN.price}/${MONTHLY_PLAN.period}.`,
+    "Find, compare and book verified fitness and wellness trainers for private sessions at home or online. Each trainer sets their own prices and availability.",
   keywords: [
     "at home personal trainer",
     "home yoga trainer",
@@ -28,9 +27,9 @@ export const metadata: Metadata = {
     "ARAMYA",
   ],
   openGraph: {
-    title: "ARAMYA — Fitness & wellness, at home.",
+    title: "ARAMYA — Find your trainer",
     description:
-      `Professional fitness and wellness training at home. ${TRIAL.name} ${TRIAL.price}. ${MONTHLY_PLAN.name} ${MONTHLY_PLAN.price}/${MONTHLY_PLAN.period}.`,
+      "Professional fitness and wellness training at home or online. Browse trainer profiles, prices and availability, then send a booking request.",
     url: "https://aramya.co",
     siteName: "ARAMYA",
     locale: "en_IN",
@@ -45,6 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       data-scroll-behavior="smooth"
       className={`${manrope.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
         <a

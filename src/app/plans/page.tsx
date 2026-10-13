@@ -1,30 +1,96 @@
-// ARAMYA plans — Design System §10 (Trial) and §14 (Monthly subscription).
+// ARAMYA pricing principles — trainers set their own prices (Design System §14).
 import type { Metadata } from "next";
 import { Container, Overline, SectionHeading, ButtonLink, CheckList } from "@/components/ui";
-import { PlanCard, TrialCard } from "@/components/cards";
-import { MONTHLY_PLAN, TRIAL } from "@/lib/data";
+import {
+  CalendarIcon,
+  ClockIcon,
+  EditIcon,
+  HomeIcon,
+  PaymentIcon,
+  PlusIcon,
+  ShieldIcon,
+  TrainerIcon,
+} from "@/components/Icons";
 
 export const metadata: Metadata = {
-  title: "Plans & Pricing",
-  description: `4-Session Trial at ${TRIAL.price} (regular ${TRIAL.regularPrice}) and an ongoing Monthly Plan at ${MONTHLY_PLAN.price} / ${MONTHLY_PLAN.period} for private at-home training.`,
+  title: "How Pricing Works",
+  description:
+    "ARAMYA is a marketplace: trainers set their own prices, ARAMYA adds nothing on top, and payment for sessions is arranged directly between you and the trainer.",
 };
+
+const PRINCIPLES = [
+  {
+    icon: TrainerIcon,
+    title: "Trainers set their own prices",
+    body: "Each trainer decides what their sessions are worth — by service, duration, format and the area they cover. Two trainers with the same specialty can price differently, and that is intended.",
+  },
+  {
+    icon: EditIcon,
+    title: "ARAMYA adds nothing on top",
+    body: "We do not add a markup, a commission or a service fee to a trainer's price. What you agree with the trainer is what you pay.",
+  },
+  {
+    icon: ShieldIcon,
+    title: "Sanity bounds only",
+    body: "Prices stay within sanity bounds that protect customers and trainers from typos and misuse. Those bounds are configured in the product, not published as copy, and they exist to keep listings reasonable.",
+  },
+  {
+    icon: PaymentIcon,
+    title: "Payment is arranged directly",
+    body: "Payment for a session is arranged between you and the trainer — not through ARAMYA, and not added to by ARAMYA.",
+  },
+];
+
+const FORMATS = [
+  {
+    icon: CalendarIcon,
+    title: "Single session",
+    body: "Start with one session to see whether a trainer is right for your goal, your schedule and your space.",
+  },
+  {
+    icon: PlusIcon,
+    title: "Multi-session package",
+    body: "Trainers can also offer packages of several sessions, priced as one package by the trainer. Compare the per-session value before you request.",
+  },
+  {
+    icon: ClockIcon,
+    title: "15 to 180 minutes",
+    body: "Session length ranges from 15 minutes to 180 minutes. Each trainer lists the lengths they actually offer.",
+  },
+  {
+    icon: HomeIcon,
+    title: "In person or online",
+    body: "Sessions happen in person as a home visit, or online over Zoom. Every trainer profile shows the formats they offer — some offer both.",
+  },
+];
+
+const PAYMENT_POINTS = [
+  "Payment for a session is arranged directly between the customer and the trainer.",
+  "ARAMYA does not collect it, hold it, or add anything to it.",
+  "Agree the amount, the format and the schedule before the session is confirmed.",
+  "A session only becomes a confirmed booking once the trainer accepts the request.",
+];
 
 const FAQ = [
   {
-    q: "What is the 4-Session Trial?",
-    a: "Four private at-home sessions with a matched trainer. You choose your preferred days and a morning, afternoon, evening or specific time. Sessions must be booked 24 hours in advance or more.",
+    q: "Who sets the price?",
+    a: "The trainer does. Each trainer prices their own services, durations and packages. ARAMYA neither sets those prices nor adds to them — you always see the trainer's own price.",
   },
   {
-    q: "How much does the Monthly Plan cost?",
-    a: `${MONTHLY_PLAN.price} / month. It includes 16 private at-home sessions, your preferred schedule, flexible schedule changes, session tracking and ongoing progress support.`,
+    q: "How do I pay?",
+    a: "Payment for sessions is arranged directly with the customer and the trainer — you agree it with the trainer as part of the request. ARAMYA is not the payment processor for your sessions and does not take a cut of what you pay.",
   },
   {
-    q: "Can I change my schedule later?",
-    a: "Yes. Both customers and trainers can request changes. A confirmed session moves through Reschedule Requested, the other party accepts, and then it becomes Rescheduled — confirmed sessions never change silently.",
+    q: "Can I book online?",
+    a: "Yes. Some trainers work in person as home visits, some online over Zoom, and some offer both. The formats a trainer offers are shown on their profile, and you choose the one you want.",
   },
   {
-    q: "Is the trial a recurring charge?",
-    a: "No. The trial is a one-time 4-Session Trial. If you want regular training afterwards, the Monthly Plan is the ongoing option.",
+    q: "What if a trainer declines?",
+    a: "Then your request isn't confirmed — and you can send the same request to another trainer. Nothing is charged or locked in by a decline, because payment is arranged between you and the trainer you actually train with.",
+  },
+  {
+    q: "Is there a subscription for trainers?",
+    a: "ARAMYA can offer trainers an optional listing subscription where that has been enabled for the marketplace. It is always optional and separate from training itself, and it never changes what you pay a trainer for your sessions.",
   },
 ];
 
@@ -34,98 +100,92 @@ export default function PlansPage() {
       {/* Hero */}
       <section className="border-b border-forest-900/10 bg-ivory-50 py-14 md:py-20">
         <Container className="flex flex-col gap-5">
-          <Overline>Plans</Overline>
-          <h1 className="t-display max-w-3xl text-charcoal-900">
-            Simple pricing for at-home training
-          </h1>
+          <Overline>Pricing</Overline>
+          <h1 className="t-display max-w-3xl text-charcoal-900">How pricing works</h1>
           <p className="t-body-lg max-w-2xl text-muted-600">
-            Start with the 4-Session Trial, then continue with the Monthly Plan
-            when you want a regular schedule.
+            ARAMYA is a marketplace, not a pricing plan. Trainers set their own
+            prices, ARAMYA does not add anything on top, and payment for sessions
+            is arranged directly with the customer and the trainer.
           </p>
         </Container>
       </section>
 
-      {/* Cards */}
+      {/* Principles */}
       <section className="py-14 md:py-20">
-        <Container className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-          <TrialCard />
-          <PlanCard />
+        <Container className="flex flex-col gap-10">
+          <SectionHeading
+            overline="How pricing works"
+            title="The price is set by the person delivering the session"
+            description="There are no fixed ARAMYA prices, no packages we sell, and no commissions added to what you pay a trainer."
+          />
+          <div className="grid gap-5 sm:grid-cols-2">
+            {PRINCIPLES.map((principle) => {
+              const Icon = principle.icon;
+              return (
+                <article
+                  key={principle.title}
+                  className="flex flex-col gap-3 rounded-xl border border-forest-900/8 bg-white p-6 shadow-sm"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-md bg-ivory-50 text-forest-900">
+                    <Icon size={22} />
+                  </span>
+                  <h3 className="t-h4 text-charcoal-900">{principle.title}</h3>
+                  <p className="t-body-sm text-muted-600">{principle.body}</p>
+                </article>
+              );
+            })}
+          </div>
         </Container>
       </section>
 
-      {/* Pricing emphasis — monthly is the primary message */}
+      {/* Session formats */}
+      <section className="bg-sand-100/60 py-14 md:py-20">
+        <Container className="flex flex-col gap-10">
+          <SectionHeading
+            overline="Session formats"
+            title="One session, a package, at home or online"
+            description="What a session looks like is part of the trainer's listing — compare formats the same way you compare trainers."
+          />
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {FORMATS.map((format) => {
+              const Icon = format.icon;
+              return (
+                <article
+                  key={format.title}
+                  className="flex flex-col gap-3 rounded-xl border border-forest-900/8 bg-white p-6 shadow-sm"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-md bg-ivory-50 text-forest-900">
+                    <Icon size={22} />
+                  </span>
+                  <h3 className="t-h4 text-charcoal-900">{format.title}</h3>
+                  <p className="t-body-sm text-muted-600">{format.body}</p>
+                </article>
+              );
+            })}
+          </div>
+          <p className="t-caption text-muted-600">
+            Sessions must be booked 24 hours in advance or more. Confirmed
+            sessions never change silently — a change is requested, accepted by
+            the other party, and then rescheduled.
+          </p>
+        </Container>
+      </section>
+
+      {/* Payment */}
       <section className="bg-forest-950 py-14 text-ivory-50 md:py-20">
         <Container className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="flex flex-col gap-6">
             <SectionHeading
-              overline="Monthly Plan"
-              title="Ongoing training, one clear price"
+              overline="Payment"
+              title="Payment is arranged directly"
               tone="light"
-              description="For customers who want regular at-home sessions with a preferred schedule and progress tracked over time."
+              description="ARAMYA connects you with a trainer and runs the booking, scheduling and session records. The money for the session itself moves between you and the trainer."
             />
-            <div className="flex items-baseline gap-3">
-              <span className="t-display-xl text-ivory-50">{MONTHLY_PLAN.price}</span>
-              <span className="t-body-lg text-ivory-50/75">/ month</span>
-            </div>
-            <ButtonLink href="/book" size="lg" variant="accent">
-              Start with a Trial
-            </ButtonLink>
-            <p className="t-caption text-ivory-50/60">
-              Most customers begin with the 4-Session Trial before moving to the
-              Monthly Plan.
-            </p>
           </div>
 
           <div className="rounded-xl border border-ivory-50/15 bg-forest-900/60 p-6">
-            <p className="t-overline pb-5 text-sage-500">What&apos;s included</p>
-            <CheckList items={MONTHLY_PLAN.included} tone="light" />
-            <p className="t-caption border-t border-ivory-50/15 pt-5 text-ivory-50/60">
-              {MONTHLY_PLAN.note}
-            </p>
-          </div>
-        </Container>
-      </section>
-
-      {/* Comparison */}
-      <section className="py-14 md:py-20">
-        <Container className="flex flex-col gap-8">
-          <SectionHeading
-            overline="Compare"
-            title="Trial and Monthly Plan side by side"
-          />
-          <div className="overflow-x-auto rounded-xl border border-forest-900/10 bg-white shadow-sm">
-            <table className="w-full min-w-[560px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-forest-900/10 bg-ivory-50">
-                  <th scope="col" className="px-5 py-4 text-body-md text-charcoal-900">
-                    {" "}
-                  </th>
-                  <th scope="col" className="px-5 py-4 text-body-md text-charcoal-900">
-                    {TRIAL.name}
-                  </th>
-                  <th scope="col" className="px-5 py-4 text-body-md text-charcoal-900">
-                    {MONTHLY_PLAN.name}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-forest-900/8">
-                {[
-                  ["Price", `${TRIAL.price} (regular ${TRIAL.regularPrice})`, `${MONTHLY_PLAN.price} / ${MONTHLY_PLAN.period}`],
-                  ["Private at-home sessions", "4 sessions", "16 private at-home sessions"],
-                  ["Schedule", "Choose preferred days", "Preferred schedule"],
-                  ["Schedule changes", "Flexible", "Flexible schedule changes"],
-                  ["Progress support", "Session history", "Session tracking + ongoing progress support"],
-                ].map(([label, trial, monthly]) => (
-                  <tr key={label}>
-                    <th scope="row" className="px-5 py-4 text-body-sm font-semibold text-muted-600">
-                      {label}
-                    </th>
-                    <td className="px-5 py-4 text-body-sm text-charcoal-900">{trial}</td>
-                    <td className="px-5 py-4 text-body-sm text-charcoal-900">{monthly}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <p className="t-overline pb-5 text-sage-500">How it works</p>
+            <CheckList items={PAYMENT_POINTS} tone="light" />
           </div>
         </Container>
       </section>
@@ -133,7 +193,7 @@ export default function PlansPage() {
       {/* FAQ */}
       <section className="bg-sand-100/60 py-14 md:py-20">
         <Container className="flex flex-col gap-8">
-          <SectionHeading overline="FAQ" title="Common questions" />
+          <SectionHeading overline="FAQ" title="Common questions about pricing" />
           <div className="grid gap-4 md:grid-cols-2">
             {FAQ.map((item) => (
               <article
@@ -145,9 +205,23 @@ export default function PlansPage() {
               </article>
             ))}
           </div>
-          <div className="flex justify-center pt-2">
-            <ButtonLink href="/book" size="lg">
-              Book Your Trial
+        </Container>
+      </section>
+
+      {/* CTA */}
+      <section className="border-t border-forest-900/10 bg-ivory-50 py-14 md:py-20">
+        <Container className="flex flex-col items-center gap-6 text-center">
+          <SectionHeading
+            overline="Next"
+            title="Find a trainer who fits your goal and your budget"
+            align="center"
+          />
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <ButtonLink href="/trainers" size="lg">
+              Find a trainer
+            </ButtonLink>
+            <ButtonLink href="/for-trainers" size="lg" variant="secondary">
+              For trainers
             </ButtonLink>
           </div>
         </Container>

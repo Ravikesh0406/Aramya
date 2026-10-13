@@ -1,7 +1,7 @@
 // ARAMYA services overview — all four active services (Design System §8).
 import type { Metadata } from "next";
 import { Container, SectionHeading, ButtonLink, Overline } from "@/components/ui";
-import { ServiceCard, TrialCard } from "@/components/cards";
+import { ServiceCard } from "@/components/cards";
 import { SERVICES } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -41,7 +41,7 @@ export default function ServicesPage() {
             <SectionHeading
               overline="Every service starts here"
               title="One trial, four sessions, your choice of service"
-              description="The 4-Session Trial runs across all four services — pick the one that fits your goal, choose your preferred days and times, and we match you with a nearby trainer."
+              description="Pick the specialization that fits your goal, then compare trainers by price, availability and experience before you send a booking request."
             />
             <ul className="flex flex-col gap-3">
               {[
@@ -62,7 +62,7 @@ export default function ServicesPage() {
             </ul>
             <div className="flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/book" size="lg">
-                Book Your Trial
+                Find a trainer
               </ButtonLink>
               <ButtonLink href="/how-it-works" size="lg" variant="secondary">
                 How matching works
@@ -70,7 +70,6 @@ export default function ServicesPage() {
             </div>
           </div>
 
-          <TrialCard className="w-full" />
         </Container>
       </section>
     </>

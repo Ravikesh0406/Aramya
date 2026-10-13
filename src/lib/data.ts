@@ -106,70 +106,37 @@ export function getService(slug: string) {
   return SERVICES.find((s) => s.slug === slug);
 }
 
-// --- Trial ---------------------------------------------------------------
-
-export const TRIAL = {
-  name: "4-Session Trial",
-  regularPrice: "₹1,499",
-  price: "₹999",
-  note: "₹1,499 is the regular displayed price. ₹999 is the early-access price.",
-  included: [
-    "4 private at-home sessions",
-    "Choose preferred days",
-    "Morning / afternoon / evening",
-    "Flexible schedule changes",
-    "Professional trainer-led sessions",
-  ],
-  cta: "Book Your Trial",
-};
-
-// --- Monthly plan ---------------------------------------------------------
-
-export const MONTHLY_PLAN = {
-  name: "Monthly Plan",
-  price: "₹4,500",
-  period: "month",
-  included: [
-    "16 private at-home sessions",
-    "Preferred schedule",
-    "Flexible schedule changes",
-    "Session tracking",
-    "Ongoing progress support",
-  ],
-  note: "Sessions must be booked 24 hours in advance or more.",
-};
-
 // --- How it works ---------------------------------------------------------
 
 export const HOW_IT_WORKS = [
   {
     step: "01",
-    title: "Choose your service",
-    body: "Yoga, fitness, mobility or weight management.",
+    title: "Find a trainer",
+    body: "Search by area, specialization, price and availability.",
   },
   {
     step: "02",
-    title: "Tell us your schedule",
-    body: "Choose preferred days and time.",
+    title: "Choose your session",
+    body: "Each trainer sets their own duration, format and price.",
   },
   {
     step: "03",
-    title: "We match you",
-    body: "Nearby eligible trainers receive the request.",
+    title: "Send a request",
+    body: "Pick the days and start time that suit you.",
   },
   {
     step: "04",
-    title: "Train at home",
-    body: "Your trainer comes to you and sessions are tracked.",
+    title: "Train with them",
+    body: "The trainer accepts, and you agree payment directly.",
   },
 ];
 
 // --- Navigation -----------------------------------------------------------
 
 export const NAV_LINKS = [
-  { label: "Services", href: "/services" },
+  { label: "Find a Trainer", href: "/trainers" },
   { label: "How it Works", href: "/how-it-works" },
-  { label: "Plans", href: "/plans" },
+  { label: "How Pricing Works", href: "/plans" },
   { label: "For Trainers", href: "/for-trainers" },
 ];
 
@@ -177,9 +144,11 @@ export const NAV_LINKS = [
 
 export const SEARCH_SUGGESTIONS = [
   "Yoga",
-  "Personal Training",
+  "Fitness / Personal Training",
   "Mobility",
-  "Weight Management / Weight Loss",
+  "Weight Management",
+  "Prenatal & Postnatal Yoga",
+  "Meditation & Mindfulness",
 ];
 
 export const LOCATIONS = [
@@ -212,6 +181,7 @@ export const SESSION_STATUSES = [
   "In Progress",
   "Completed",
   "Cancelled",
+  "Declined",
   "Reschedule Requested",
   "Rescheduled",
   "No Show",

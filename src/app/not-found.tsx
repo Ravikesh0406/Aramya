@@ -18,7 +18,7 @@ export default function NotFound() {
             Back to home
           </ButtonLink>
           <ButtonLink href="/book" size="lg" variant="secondary">
-            Book a Trial
+            Find a trainer
           </ButtonLink>
         </div>
         <nav aria-label="Services" className="flex flex-wrap justify-center gap-2 pt-4">
