@@ -8,7 +8,15 @@ import { SERVICE_ICONS } from "@/components/Icons";
 import { TrainerMarketCard } from "@/components/TrainerMarketCard";
 import { SERVICES, getService, HOW_IT_WORKS } from "@/lib/data";
 import { searchTrainersByCategory } from "@/lib/server/search";
+import { listCategories } from "@/lib/server/trainers";
 
+export const dynamic = "force-dynamic";
+
+/**
+ * Static params come from the legacy SERVICES list so existing URLs keep working;
+ * the page itself resolves the category from the database, which also gives the
+ * six categories added in the marketplace a working page.
+ */
 export function generateStaticParams() {
   return SERVICES.map((service) => ({ slug: service.slug }));
 }
@@ -18,11 +26,13 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { slug } = await props.params;
   const service = getService(slug);
-  if (!service) return { title: "Service not found" };
-  return {
-    title: service.name,
-    description: `${service.short} ${service.description.slice(0, 120)}...`,
-  };
+  if (service) {
+    return { title: service.name, description: `${service.short} ${service.description.slice(0, 120)}...` };
+  }
+  const categories = await listCategories(true);
+  const category = categories.find((item) => item.slug === slug);
+  if (!category) return { title: "Specialization not found" };
+  return { title: category.name, description: category.description };
 }
 
 export default async function ServiceDetailPage(
@@ -30,10 +40,15 @@ export default async function ServiceDetailPage(
 ) {
   const { slug } = await props.params;
   const service = getService(slug);
-  if (!service) notFound();
+  const categories = await listCategories(true);
+  const category = categories.find((item) => item.slug === slug) ?? null;
+  if (!service && !category) notFound();
 
-  const Icon = SERVICE_ICONS[service.icon];
-  const others = SERVICES.filter((s) => s.slug !== service.slug);
+  const title = service?.name ?? category?.name ?? "Specialization";
+  const short = service?.short ?? category?.description ?? "";
+  const description = service?.description ?? category?.description ?? "";
+  const Icon = service ? SERVICE_ICONS[service.icon] : null;
+  const others = SERVICES.filter((s) => s.slug !== slug);
 
   return (
     <>
@@ -45,24 +60,24 @@ export default async function ServiceDetailPage(
               Services
             </Link>
             <span aria-hidden>/</span>
-            <span className="text-charcoal-900">{service.name}</span>
+            <span className="text-charcoal-900">{title}</span>
           </nav>
 
           <div className="flex items-start gap-5">
-            <span className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-md bg-forest-900 text-white sm:flex">
-              <Icon size={28} />
-            </span>
+            {Icon ? (
+              <span className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-md bg-forest-900 text-white sm:flex">
+                <Icon size={28} />
+              </span>
+            ) : null}
             <div className="flex flex-col gap-4">
-              <Overline>Active service</Overline>
-              <h1 className="t-display text-charcoal-900">{service.name}</h1>
-              <p className="t-body-lg max-w-2xl text-muted-600">
-                {service.short}
-              </p>
+              <Overline>Specialization</Overline>
+              <h1 className="t-display text-charcoal-900">{title}</h1>
+              <p className="t-body-lg max-w-2xl text-muted-600">{short}</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-            <ButtonLink href={`/trainers?category=${service.slug}`} size="lg">
+            <ButtonLink href={`/trainers?category=${slug}`} size="lg">
               Find a trainer
             </ButtonLink>
             <ButtonLink href="#included" size="lg" variant="secondary">
@@ -79,12 +94,12 @@ export default async function ServiceDetailPage(
             <SectionHeading
               overline="About this service"
               title="Private, goal-oriented sessions at home"
-              description={service.description}
+              description={description}
             />
             <div className="flex flex-col gap-4 rounded-xl border border-forest-900/10 bg-white p-6 shadow-sm">
               <p className="t-overline text-muted-600">Focus areas</p>
               <ul className="flex flex-col gap-3">
-                {service.focus.map((item) => (
+                {(service?.focus ?? []).map((item) => (
                   <li
                     key={item}
                     className="flex items-center gap-3 text-body text-charcoal-900"
@@ -109,9 +124,9 @@ export default async function ServiceDetailPage(
             <p className="t-overline pb-5 text-terracotta-500">
               What&apos;s included
             </p>
-            <CheckList items={service.included} />
+            <CheckList items={service?.included ?? []} />
             <div className="mt-6 border-t border-forest-900/8 pt-5">
-              <ButtonLink href={`/trainers?category=${service.slug}`} size="lg" className="w-full">
+              <ButtonLink href={`/trainers?category=${slug}`} size="lg" className="w-full">
                 Find a trainer
               </ButtonLink>
               <p className="t-caption pt-3 text-center text-muted-600">
@@ -152,7 +167,7 @@ export default async function ServiceDetailPage(
       </section>
 
       {/* Trainers in this specialization */}
-      <TrainerList slug={service.slug} />
+      <TrainerList slug={slug} />
 
       {/* Other services */}
       <section className="py-14 md:py-20">

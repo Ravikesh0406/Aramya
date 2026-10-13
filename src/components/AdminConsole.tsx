@@ -337,6 +337,30 @@ export function AdminConsole() {
                                 Reject
                               </Button>
                             ) : null}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                if (!window.confirm("Clear this trainer's bio text?")) return;
+                                await api(`/api/admin/trainers/${trainer.user_id}`, "POST", { action: "clearBio" });
+                                setNotice(`${trainer.name}'s bio cleared.`);
+                                await load();
+                              }}
+                            >
+                              Clear bio
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={async () => {
+                                if (!window.confirm("Remove this trainer's profile photo?")) return;
+                                await api(`/api/admin/trainers/${trainer.user_id}`, "POST", { action: "clearPhoto" });
+                                setNotice(`${trainer.name}'s photo removed.`);
+                                await load();
+                              }}
+                            >
+                              Clear photo
+                            </Button>
                             {trainer.status === "suspended" ? (
                               <Button
                                 size="sm"

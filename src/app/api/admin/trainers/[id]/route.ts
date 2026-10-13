@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/server/session";
 import { isAdminUser } from "@/lib/server/admin";
 import {
+  clearTrainerBioOrPhoto,
   getCertificationById,
   listCategories,
   listTrainerCategories,
@@ -64,6 +65,14 @@ export async function POST(
 
   if (action === "reject") {
     await setVerificationStatus(id, "rejected", note || "Profile needs changes.", admin?.name ?? "admin");
+    return Response.json({ ok: true });
+  }
+
+  if (action === "clearBio" || action === "clearPhoto") {
+    await clearTrainerBioOrPhoto(id, {
+      bio: action === "clearBio",
+      photo: action === "clearPhoto",
+    });
     return Response.json({ ok: true });
   }
 

@@ -191,7 +191,7 @@ export function TrainerFilters({
           >
             {SORTS.map((sort) => (
               <option key={sort.value} value={sort.value}>
-                {sort.label}
+                {sort.value === "rating" ? "Rating (reviewed trainers)" : sort.label}
               </option>
             ))}
           </select>

@@ -3,7 +3,7 @@
 // ARAMYA trainer onboarding — multi-step, mobile-first, saved after each step.
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Overline } from "@/components/ui";
 import {
   CheckIcon,
@@ -77,8 +77,19 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+const STEP_BY_KEY: Record<string, number> = {
+  basics: 0,
+  expertise: 1,
+  offerings: 2,
+  availability: 3,
+  location: 4,
+  credentials: 5,
+  review: 6,
+};
+
 export function TrainerOnboarding() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<TrainerProfile | null>(null);
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
@@ -127,7 +138,14 @@ export function TrainerOnboarding() {
           next[range.weekday] = [...(next[range.weekday] ?? []), { startTime: range.start_time, endTime: range.end_time }];
         }
         setRanges(next);
-        if (data.trainer.status === "submitted") {
+        const requested = searchParams.get("step");
+        const editing = searchParams.get("edit") !== null || Boolean(requested);
+        if (requested && STEP_BY_KEY[requested] !== undefined) {
+          setStep(STEP_BY_KEY[requested]);
+        }
+        // Already submitted profiles land on onboarding only to edit, so do not
+        // redirect back to the dashboard when a step or edit flag is present.
+        if (data.trainer.status === "submitted" && !editing) {
           router.replace("/trainer");
         }
       } catch {

@@ -633,6 +633,22 @@ export async function setVerificationStatus(
   await execute("UPDATE users SET verified = $1 WHERE id = $2", [status === "verified", userId]);
 }
 
+/** Admin moderation: clear an offending bio and/or photo. */
+export async function clearTrainerBioOrPhoto(
+  userId: string,
+  input: { bio?: boolean; photo?: boolean },
+): Promise<void> {
+  await ensureSchema();
+  await transaction(async (client) => {
+    if (input.bio) {
+      await client.query("UPDATE trainer_profiles SET bio = '', updated_at = now() WHERE user_id = $1", [userId]);
+    }
+    if (input.photo) {
+      await client.query("UPDATE trainer_profiles SET photo_key = NULL, updated_at = now() WHERE user_id = $1", [userId]);
+    }
+  });
+}
+
 export async function setProfileStatus(userId: string, status: ProfileStatus): Promise<void> {
   await ensureSchema();
   await execute("UPDATE trainer_profiles SET status = $1, updated_at = now() WHERE user_id = $2", [
