@@ -130,9 +130,11 @@ Last updated: Round 3 (marketplace) — see `TODO.md` for the task-level checkli
 | `npm run build` | ✅ passing (63 routes) |
 | `bash scripts/smoke-test.sh` | ✅ 15 checks passing |
 | `bash scripts/smoke-lifecycle.sh` | ✅ 12 checks passing (lifecycle, reviews, reschedule, area interest) |
+| All 13 key URLs render | ✅ 200 (no runtime errors in the dev log) |
 | Test-database guards | ✅ refuses when `DATABASE_URL_TEST` is unset or points at the dev DB |
 | Admin console (stats, verify, categories, pricing limits, plans, reports) | ✅ verified live |
 | Mobile/desktop widths | ⬜ no browser in this environment — manual check required |
+| Rate limiting | ✅ verified: the area-interest endpoint correctly returned 429 once its 3/hour budget was used in testing |
 
 ---
 
