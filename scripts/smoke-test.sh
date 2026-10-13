@@ -12,8 +12,12 @@ TRAINER="$TMP/trainer.txt"
 pass=0; fail=0
 
 check() { # name expected actual
-  if [ "$2" = "$3" ]; then echo "  PASS $1 ($3)"; pass=$((pass+1));
+  if [ "$2" = "$3" ]; then echo "  PASS $1"; pass=$((pass+1));
   else echo "  FAIL $1 (expected $2 got $3)"; fail=$((fail+1)); fi
+}
+step() { # name pattern subject  -> pass when the subject contains the pattern
+  if echo "$3" | grep -q "$2"; then echo "  PASS $1"; pass=$((pass+1));
+  else echo "  FAIL $1"; fail=$((fail+1)); fi
 }
 code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
 
@@ -40,7 +44,7 @@ curl -s -X POST "$BASE/api/trainer/offerings" -b "$TRAINER" -H "$H" -H "$J" \
 curl -s -X POST "$BASE/api/trainer/photo" -b "$TRAINER" -H "$H" -H "$J" \
   -d '{"dataUrl":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8AAAwAB/AL+aAAAAABJRU5ErkJggg==","kind":"photo"}' -o /dev/null
 SUBMIT=$(curl -s -X POST "$BASE/api/trainer/submit" -b "$TRAINER" -H "$H")
-echo "$SUBMIT" | grep -q '"status":"submitted"' && echo "  PASS profile submitted" || echo "  FAIL profile submitted: $SUBMIT"
+step "profile submitted for review" '"status":"submitted"' "$SUBMIT"
 
 echo "== 4. Admin verifies the trainer =="
 docker exec aramya-postgres psql -U aramya -d aramya_dev -tAc \
@@ -48,15 +52,15 @@ docker exec aramya-postgres psql -U aramya -d aramya_dev -tAc \
 
 echo "== 5. Search finds the trainer by PIN =="
 SEARCH=$(curl -s "$BASE/api/trainers?pin=110057")
-echo "$SEARCH" | grep -q "\"slug\":\"$SLUG\"" && echo "  PASS search by pin" || echo "  FAIL search by pin"
+step "search finds trainer by PIN" "\"slug\":\"$SLUG\"" "$SEARCH"
 
 echo "== 6. Targeted booking (price recomputed server-side) =="
 BOOKING=$(curl -s -X POST "$BASE/api/bookings/targeted" -b "$CUST" -H "$H" -H "$J" \
   -d "{\"trainerSlug\":\"$SLUG\",\"offeringId\":\"$(docker exec aramya-postgres psql -U aramya -d aramya_dev -tAc "SELECT id FROM trainer_offerings WHERE trainer_id=(SELECT id FROM users WHERE contact='$T_CONTACT') LIMIT 1")\",\"weekdays\":[1],\"startTime\":\"07:00\",\"location\":\"\",\"pricePaise\":1}")
 BOOKING_ID=$(echo "$BOOKING" | sed -n 's/.*"bookingId":"\([^"]*\)".*/\1/p')
-[ -n "$BOOKING_ID" ] && echo "  PASS booking created ($BOOKING_ID)" || echo "  FAIL booking: $BOOKING"
+step "targeted booking created" bookingId "$BOOKING"
 SAVED_PRICE=$(docker exec aramya-postgres psql -U aramya -d aramya_dev -tAc "SELECT price_paise FROM bookings WHERE id='$BOOKING_ID'")
-check "server-side price snapshot" 70000 "$SAVED_PRICE"
+step "server-side price snapshot (client price ignored)" "^70000$" "$SAVED_PRICE"
 
 echo "== 7. Duplicate submit is rejected =="
 DUP=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/bookings/targeted" -b "$CUST" -H "$H" -H "$J" \
@@ -70,39 +74,39 @@ check "outside availability rejected" 400 "$LATE"
 
 echo "== 9. Trainer accepts; Zoom link hidden before and revealed after =="
 HIDDEN=$(curl -s "$BASE/api/bookings" -b "$CUST" | grep -c "zoom.us" || true)
-check "no zoom link before accept" 0 "$HIDDEN"
+step "no zoom link before acceptance" "^0$" "$HIDDEN"
 ACCEPT=$(curl -s -X POST "$BASE/api/bookings/$BOOKING_ID/accept" -b "$TRAINER" -H "$H")
-echo "$ACCEPT" | grep -q '"status":"Confirmed"' && echo "  PASS trainer accepted" || echo "  FAIL accept: $ACCEPT"
+step "trainer accepted the request" '"status":"Confirmed"' "$ACCEPT"
 REVEALED=$(curl -s "$BASE/api/bookings" -b "$CUST" | grep -c "zoom.us" || true)
-check "zoom link revealed to customer" 1 "$REVEALED"
+step "zoom link revealed to customer after acceptance" "^1$" "$REVEALED"
 
 echo "== 10. Trainer declines another request =="
 BOOKING2=$(curl -s -X POST "$BASE/api/bookings/targeted" -b "$CUST" -H "$H" -H "$J" \
   -d "{\"trainerSlug\":\"$SLUG\",\"offeringId\":\"$(docker exec aramya-postgres psql -U aramya -d aramya_dev -tAc "SELECT id FROM trainer_offerings WHERE trainer_id=(SELECT id FROM users WHERE contact='$T_CONTACT') LIMIT 1")\",\"weekdays\":[3],\"startTime\":\"18:00\",\"location\":\"\"}")
 B2=$(echo "$BOOKING2" | sed -n 's/.*"bookingId":"\([^"]*\)".*/\1/p')
 DECLINE=$(curl -s -X POST "$BASE/api/bookings/$B2/decline" -b "$TRAINER" -H "$H")
-echo "$DECLINE" | grep -q '"status":"Declined"' && echo "  PASS request declined" || echo "  FAIL decline: $DECLINE"
+step "trainer declined the request" '"status":"Declined"' "$DECLINE"
 
 echo "== 11. Complete the session and leave a review =="
 docker exec aramya-postgres psql -U aramya -d aramya_dev -tAc "UPDATE bookings SET status='Completed' WHERE id='$BOOKING_ID'" > /dev/null
 REVIEW=$(curl -s -X POST "$BASE/api/reviews" -b "$CUST" -H "$H" -H "$J" \
   -d "{\"bookingId\":\"$BOOKING_ID\",\"rating\":5,\"comment\":\"Clear, patient and well prepared.\"}")
-echo "$REVIEW" | grep -q '"rating":5' && echo "  PASS review created" || echo "  FAIL review: $REVIEW"
+step "review created" '"rating":5' "$REVIEW"
 PROFILE=$(curl -s "$BASE/api/trainers/$SLUG")
-echo "$PROFILE" | grep -q 'Clear, patient and well prepared' && echo "  PASS review on profile" || echo "  FAIL review on profile"
+step "review shown on public profile" 'Clear, patient and well prepared' "$PROFILE"
 
 echo "== 12. Subscription purchase (MOCK gateway) =="
 docker exec aramya-postgres psql -U aramya -d aramya_dev -tAc \
   "INSERT INTO subscription_plans (id,name,description,price_paise,period_days) VALUES ('smoke-plan','Smoke Listing','smoke test',50000,30) ON CONFLICT DO NOTHING" > /dev/null
 SUB=$(curl -s -X POST "$BASE/api/trainer/subscription" -b "$TRAINER" -H "$H" -H "$J" -d '{"planId":"smoke-plan"}')
-echo "$SUB" | grep -q 'Smoke Listing' && echo "  PASS subscription activated" || echo "  FAIL subscription: $SUB"
+step "subscription activated (MOCK gateway)" 'Smoke Listing' "$SUB"
 
 echo "== 13. Legacy open-request flow still works =="
 LEGACY=$(curl -s -X POST "$BASE/api/bookings" -b "$CUST" -H "$H" -H "$J" \
   -d '{"location":"Indiranagar, Bengaluru","serviceSlug":"yoga","serviceName":"Yoga","days":["Monday","Tuesday","Wednesday","Thursday"],"time":"Morning"}')
-echo "$LEGACY" | grep -q '"requestKind":"open"' && echo "  PASS legacy open request" || echo "  FAIL legacy: $LEGACY"
+step "legacy open request still works" '"requestKind":"open"' "$LEGACY"
 
-echo
+
 echo "smoke test: $pass passed, $fail failed"
 rm -rf "$TMP"
 [ "$fail" -eq 0 ]
